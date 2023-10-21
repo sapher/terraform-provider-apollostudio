@@ -35,21 +35,25 @@ func New(version string) func() provider.Provider {
 }
 
 func (p *ApolloProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
-	resp.TypeName = "apollo"
+	resp.TypeName = "apollostudio"
 	resp.Version = p.version
 }
 
 func (p *ApolloProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Interact with Apollo Studio",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				Optional: true,
+				Description: "Host of the Apollo GraphQL API. Defaults to https://graphql.api.apollographql.com/api/graphql",
+				Optional:    true,
 			},
 			"api_key": schema.StringAttribute{
-				Optional: true,
+				Description: "API key for the Apollo GraphQL API. Can also be set via the APOLLO_KEY environment variable",
+				Optional:    true,
 			},
 			"org_id": schema.StringAttribute{
-				Required: true,
+				Description: "Organization ID on Apollo Studio. Can also be set via the APOLLO_ORG_ID environment variable",
+				Required:    true,
 			},
 		},
 	}
@@ -66,7 +70,7 @@ func (p *ApolloProvider) Configure(ctx context.Context, req provider.ConfigureRe
 
 	host := "https://graphql.api.apollographql.com/api/graphql"
 	apiKey := os.Getenv("APOLLO_KEY")
-	orgId := ""
+	orgId := os.Getenv("APOLLO_ORG_ID")
 
 	if !config.Host.IsNull() {
 		host = config.Host.ValueString()
