@@ -126,5 +126,12 @@ func (p *ApolloProvider) Resources(ctx context.Context) []func() resource.Resour
 }
 
 func (p *ApolloProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewMeDataSource,
+		NewOrganizationDataSource,
+		NewGraphDataSource,
+		NewGraphsDataSource,
+		NewGraphVariantDataSource,
+		NewGraphVariantsDataSource,
+	}
 }
