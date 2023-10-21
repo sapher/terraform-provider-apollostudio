@@ -33,7 +33,7 @@ func (d *OrganizationDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *OrganizationDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Organization on ApolloStudio", // TODO: change this
+		Description: "Current organization on Apollo Studio. This is the organization defined by `org_id` in the provider.", // TODO: change this
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Organization ID", // TODO: change this
