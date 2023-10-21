@@ -31,16 +31,19 @@ func (d *GraphVariantDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *GraphVariantDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Graph variant data source", // TODO: change this
+		Description: "Specific Graph variant", // TODO: change this
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required: true,
+				Description: "Graph variant ID",
+				Required:    true,
 			},
 			"name": schema.StringAttribute{
-				Computed: true,
+				Description: "Graph variant name",
+				Computed:    true,
 			},
 			"has_supergraph_schema": schema.BoolAttribute{
-				Computed: true,
+				Description: "Whether the variant has a supergraph schema",
+				Computed:    true,
 			},
 		},
 	}

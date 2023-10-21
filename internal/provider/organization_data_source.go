@@ -33,22 +33,27 @@ func (d *OrganizationDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *OrganizationDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Organization data source", // TODO: change this
+		Description: "Organization on ApolloStudio", // TODO: change this
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed: true,
+				Description: "Organization ID", // TODO: change this
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Computed: true,
+				Description: "Organization name", // TODO: change this
+				Computed:    true,
 			},
 			"is_on_trial": schema.BoolAttribute{
-				Computed: true,
+				Description: "Whether the organization is on trial period",
+				Computed:    true,
 			},
 			"is_on_expired_trial": schema.BoolAttribute{
-				Computed: true,
+				Description: "Wether the organization trial period has expired",
+				Computed:    true,
 			},
 			"is_locked": schema.BoolAttribute{
-				Computed: true,
+				Description: "Whether the organization is locked",
+				Computed:    true,
 			},
 		},
 	}

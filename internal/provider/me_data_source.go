@@ -30,13 +30,15 @@ func (d *MeDataSource) Metadata(_ context.Context, req datasource.MetadataReques
 
 func (d *MeDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Me data source", // TODO: change this
+		Description: "Current authenticated user", // TODO: change this
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Computed: true,
+				Description: "User ID",
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Computed: true,
+				Description: "User name",
+				Computed:    true,
 			},
 		},
 	}
@@ -72,7 +74,7 @@ func (d *MeDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	me, err := d.client.GetMe(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get me", // TODO: change this
+			"failed to get the current authenticated user", // TODO: change this
 			"Unable to get date for the current user",
 		)
 		return

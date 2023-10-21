@@ -29,29 +29,36 @@ func (d *GraphsDataSource) Metadata(_ context.Context, req datasource.MetadataRe
 
 func (d *GraphsDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Graphs data source", // TODO: change this
+		Description: "List all graphs of the organization", // TODO: change this
 		Attributes: map[string]schema.Attribute{
 			"graphs": schema.ListNestedAttribute{
-				Computed: true,
+				Description: "List of graphs",
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Required: true,
+							Description: "Graph ID",
+							Required:    true,
 						},
 						"name": schema.StringAttribute{
-							Computed: true,
+							Description: "Graph name",
+							Computed:    true,
 						},
 						"title": schema.StringAttribute{
-							Computed: true,
+							Description: "Graph title",
+							Computed:    true,
 						},
 						"description": schema.StringAttribute{
-							Computed: true,
+							Description: "Graph description",
+							Computed:    true,
 						},
 						"graph_type": schema.StringAttribute{
-							Computed: true,
+							Description: "Graph type",
+							Computed:    true,
 						},
 						"reporting_enabled": schema.BoolAttribute{
-							Computed: true,
+							Description: "Whether reporting is enabled for the graph",
+							Computed:    true,
 						},
 					},
 				},
