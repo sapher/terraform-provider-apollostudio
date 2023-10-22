@@ -35,6 +35,19 @@ type Graph struct {
 	AccountId        string
 }
 
+type PartialSchema struct {
+	Sdl       string
+	CreatedAt string
+	IsLive    bool
+}
+
+type SubGraph struct {
+	Name                string
+	Revision            string
+	Url                 string
+	ActivePartialSchema PartialSchema
+}
+
 type GraphVariant struct {
 	Id                  string
 	Name                string
@@ -336,4 +349,45 @@ func (c *ApolloClient) RemoveGraphApiKey(ctx context.Context, graphId string, ap
 		return err
 	}
 	return nil
+}
+
+func (c *ApolloClient) GetSubGraphs(ctx context.Context, graphId string, variantName string, includeDeleted bool) ([]SubGraph, error) {
+	var query struct {
+		Graph struct {
+			Variant struct {
+				SubGraphs []struct {
+					Name                string
+					Url                 string
+					Revision            string
+					ActivePartialSchema struct {
+						Sdl       string
+						CreatedAt string
+						IsLive    bool
+					}
+				} `graphql:"subgraphs"`
+			} `graphql:"variant(name: $variantName)"`
+		} `graphql:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId":     graphql.ID(graphId),
+		"variantName": graphql.String(variantName),
+	}
+	err := c.gqlClient.Query(ctx, &query, vars)
+	subGraphs := make([]SubGraph, 0)
+	if err != nil {
+		return subGraphs, err
+	}
+	for _, sg := range query.Graph.Variant.SubGraphs {
+		subGraphs = append(subGraphs, SubGraph{
+			Name:     sg.Name,
+			Revision: sg.Revision,
+			Url:      sg.Url,
+			ActivePartialSchema: PartialSchema{
+				Sdl:       sg.ActivePartialSchema.Sdl,
+				CreatedAt: sg.ActivePartialSchema.CreatedAt,
+				IsLive:    sg.ActivePartialSchema.IsLive,
+			},
+		})
+	}
+	return subGraphs, nil
 }

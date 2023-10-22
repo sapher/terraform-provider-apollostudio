@@ -60,11 +60,11 @@ func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"token": schema.StringAttribute{
 				Description: "Token",
 				Computed:    true,
+				Sensitive:   true,
 			},
 			"created_at": schema.StringAttribute{
 				Description: "Creation date",
 				Computed:    true,
-				Sensitive:   true,
 			},
 		},
 	}

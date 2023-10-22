@@ -140,5 +140,6 @@ func (p *ApolloProvider) DataSources(ctx context.Context) []func() datasource.Da
 		NewGraphVariantDataSource,
 		NewGraphVariantsDataSource,
 		NewGraphApiKeysDataSource,
+		NewSubGraphsDataSource,
 	}
 }
