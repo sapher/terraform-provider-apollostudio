@@ -2,6 +2,7 @@ package provider
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -68,8 +69,8 @@ func (d *GraphVariantsDataSource) Configure(_ context.Context, req datasource.Co
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"invalid provider data",                          // TODO: change this
-			"the provider data was not of the expected type", // TODO: change this
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *client.ApolloClientn got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
