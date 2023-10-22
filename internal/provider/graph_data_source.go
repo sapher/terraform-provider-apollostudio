@@ -22,6 +22,7 @@ type GraphDataSourceModel struct {
 	Description      types.String `tfsdk:"description"`
 	GraphType        types.String `tfsdk:"graph_type"`
 	ReportingEnabled types.Bool   `tfsdk:"reporting_enabled"`
+	AccountId        types.String `tfsdk:"account_id"`
 }
 
 func NewGraphDataSource() datasource.DataSource {
@@ -58,6 +59,10 @@ func (d *GraphDataSource) Schema(_ context.Context, req datasource.SchemaRequest
 			},
 			"reporting_enabled": schema.BoolAttribute{
 				Description: "Whether reporting is enabled for the graph",
+				Computed:    true,
+			},
+			"account_id": schema.StringAttribute{
+				Description: "Account ID",
 				Computed:    true,
 			},
 		},
@@ -105,6 +110,7 @@ func (d *GraphDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	data.Description = types.StringValue(graph.Description)
 	data.GraphType = types.StringValue(graph.GraphType)
 	data.ReportingEnabled = types.BoolValue(graph.ReportingEnabled)
+	data.AccountId = types.StringValue(graph.AccountId)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

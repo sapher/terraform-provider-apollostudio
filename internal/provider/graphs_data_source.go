@@ -60,6 +60,10 @@ func (d *GraphsDataSource) Schema(_ context.Context, req datasource.SchemaReques
 							Description: "Whether reporting is enabled for the graph",
 							Computed:    true,
 						},
+						"account_id": schema.StringAttribute{
+							Description: "Account ID",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -111,6 +115,7 @@ func (d *GraphsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 			Description:      types.StringValue(graph.Description),
 			GraphType:        types.StringValue(graph.GraphType),
 			ReportingEnabled: types.BoolValue(graph.ReportingEnabled),
+			AccountId:        types.StringValue(graph.AccountId),
 		})
 	}
 

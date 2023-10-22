@@ -32,6 +32,7 @@ Required:
 
 Read-Only:
 
+- `account_id` (String) Account ID
 - `description` (String) Graph description
 - `graph_type` (String) Graph type
 - `name` (String) Graph name

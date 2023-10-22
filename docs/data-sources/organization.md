@@ -3,12 +3,12 @@
 page_title: "apollostudio_organization Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  Current organization on Apollo Studio
+  Current organization on Apollo Studio. This is the organization defined by org_id in the provider.
 ---
 
 # apollostudio_organization (Data Source)
 
-Current organization on Apollo Studio
+Current organization on Apollo Studio. This is the organization defined by `org_id` in the provider.
 
 ## Example Usage
 
