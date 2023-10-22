@@ -29,7 +29,7 @@ resource "apollostudio_graph_api_key" "this" {
 
 ### Read-Only
 
-- `created_at` (String, Sensitive) Creation date
+- `created_at` (String) Creation date
 - `id` (String) Api key ID
 - `role` (String) Role
-- `token` (String) Token
+- `token` (String, Sensitive) Token

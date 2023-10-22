@@ -17,12 +17,12 @@ type GraphApiKeysDataSource struct {
 }
 
 type GraphApiKeyDataSourceModel struct {
-	Id        types.String            `tfsdk:"id"`
-	KeyName   types.String            `tfsdk:"key_name"`
-	Role      types.String            `tfsdk:"role"`
-	Token     types.String            `tfsdk:"token"`
-	CreatedAt types.String            `tfsdk:"created_at"`
-	CreatedBy IdendityDataSourceModel `tfsdk:"created_by"`
+	Id        types.String  `tfsdk:"id"`
+	KeyName   types.String  `tfsdk:"key_name"`
+	Role      types.String  `tfsdk:"role"`
+	Token     types.String  `tfsdk:"token"`
+	CreatedAt types.String  `tfsdk:"created_at"`
+	CreatedBy IdendityModel `tfsdk:"created_by"`
 }
 
 type GraphApiKeysDataSourceModel struct {
@@ -134,7 +134,7 @@ func (d *GraphApiKeysDataSource) Read(ctx context.Context, req datasource.ReadRe
 			Role:      types.StringValue(graphApiKey.Role),
 			Token:     types.StringValue(graphApiKey.Token),
 			CreatedAt: types.StringValue(graphApiKey.CreatedAt),
-			CreatedBy: IdendityDataSourceModel{
+			CreatedBy: IdendityModel{
 				Id:   types.StringValue(graphApiKey.CreatedBy.Id),
 				Name: types.StringValue(graphApiKey.CreatedBy.Name),
 			},
