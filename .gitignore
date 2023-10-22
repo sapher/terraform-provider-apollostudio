@@ -1,3 +1,5 @@
 terraform-provider-apollostudio
 *.tfstate
 *.tfplan
+try
+client_main.go

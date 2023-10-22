@@ -96,7 +96,7 @@ func (p *ApolloProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Apollo API key",
-			"Please set the api_key to the Apollo API key",
+			"Please set the api_key so the client can authenticate to the Apollo API",
 		)
 	}
 
@@ -137,5 +137,6 @@ func (p *ApolloProvider) DataSources(ctx context.Context) []func() datasource.Da
 		NewGraphsDataSource,
 		NewGraphVariantDataSource,
 		NewGraphVariantsDataSource,
+		NewGraphApiKeysDataSource,
 	}
 }

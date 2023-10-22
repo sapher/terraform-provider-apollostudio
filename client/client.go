@@ -32,12 +32,27 @@ type Graph struct {
 	Description      string
 	GraphType        string
 	ReportingEnabled bool
+	AccountId        string
 }
 
 type GraphVariant struct {
 	Id                  string
 	Name                string
 	HasSupergraphSchema bool
+}
+
+type Identity struct {
+	Id   string
+	Name string
+}
+
+type GraphApiKey struct {
+	Id        string
+	KeyName   string
+	Role      string
+	Token     string
+	CreatedAt string
+	CreatedBy Identity
 }
 
 func NewClient(host string, apiKey string, orgId string) *ApolloClient {
@@ -193,4 +208,44 @@ func (c *ApolloClient) GetGraphVariants(ctx context.Context, graphId string) ([]
 		})
 	}
 	return graphVariants, nil
+}
+
+func (c *ApolloClient) GetGraphApiKeys(ctx context.Context, graphId string) ([]GraphApiKey, error) {
+	var query struct {
+		Graph struct {
+			ApiKeys []struct {
+				Id        string
+				KeyName   string
+				Role      string
+				CreatedAt string
+				Token     string
+				CreatedBy struct {
+					Id   string
+					Name string
+				}
+			}
+		} `graphql:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId": graphql.ID(graphId),
+	}
+	err := c.gqlClient.Query(ctx, &query, vars)
+	if err != nil {
+		return nil, err
+	}
+	graphApiKeys := make([]GraphApiKey, 0)
+	for _, ak := range query.Graph.ApiKeys {
+		graphApiKeys = append(graphApiKeys, GraphApiKey{
+			Id:        ak.Id,
+			KeyName:   ak.KeyName,
+			Role:      ak.Role,
+			CreatedAt: ak.CreatedAt,
+			Token:     ak.Token,
+			CreatedBy: Identity{
+				Id:   ak.CreatedBy.Id,
+				Name: ak.CreatedBy.Name,
+			},
+		})
+	}
+	return graphApiKeys, nil
 }
