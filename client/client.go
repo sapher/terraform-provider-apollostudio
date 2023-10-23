@@ -391,3 +391,63 @@ func (c *ApolloClient) GetSubGraphs(ctx context.Context, graphId string, variant
 	}
 	return subGraphs, nil
 }
+
+func (c *ApolloClient) GetSubGraph(ctx context.Context, graphId string, variantName string, subgraphName string) (SubGraph, error) {
+	subgraphs, err := c.GetSubGraphs(ctx, graphId, variantName, true)
+	if err != nil {
+		return SubGraph{}, err
+	}
+	for _, sg := range subgraphs {
+		if sg.Name == subgraphName {
+			return sg, nil
+		}
+	}
+	return SubGraph{}, nil
+}
+
+func (c *ApolloClient) PublishSubGraph(ctx context.Context, graphId string, variantName string, subgraphName string, revision string, sdl string, url string) error {
+	var mutation struct {
+		Graph struct {
+			PublishSubgraph struct {
+				WasCreated bool
+				WasUpdated bool
+			} `graphql:"publishSubgraph(graphVariant: $variantName, name: $subgraphName, revision: $revision, activePartialSchema: { sdl: $sdl }, url: $url)"`
+		} `graphql:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId":      graphql.ID(graphId),
+		"variantName":  graphql.String(variantName),
+		"subgraphName": graphql.String(subgraphName),
+		"revision":     graphql.String(revision),
+		"sdl":          graphql.String(sdl),
+		"url":          graphql.String(url),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ApolloClient) RemoveSubGraph(ctx context.Context, graphId string, variantName string, subgraphName string) error {
+	var mutation struct {
+		Graph struct {
+			RemoveImplementingServiceAndTriggerComposition struct {
+				Errors []struct {
+					Message string
+					Code    string
+				}
+			} `graphql:"removeImplementingServiceAndTriggerComposition(graphVariant: $variantName, name: $subgraphName)"`
+		} `graphql:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId":      graphql.ID(graphId),
+		"variantName":  graphql.String(variantName),
+		"subgraphName": graphql.String(subgraphName),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return err
+	}
+	return nil
+}

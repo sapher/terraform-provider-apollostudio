@@ -21,12 +21,13 @@ type GraphApiKeyResource struct {
 }
 
 type GraphApiKeyResourceModel struct {
-	GraphId   types.String `tfsdk:"graph_id"`
-	Id        types.String `tfsdk:"id"`
-	KeyName   types.String `tfsdk:"key_name"`
-	Role      types.String `tfsdk:"role"`
-	Token     types.String `tfsdk:"token"`
-	CreatedAt types.String `tfsdk:"created_at"`
+	GraphId   types.String  `tfsdk:"graph_id"`
+	Id        types.String  `tfsdk:"id"`
+	KeyName   types.String  `tfsdk:"key_name"`
+	Role      types.String  `tfsdk:"role"`
+	Token     types.String  `tfsdk:"token"`
+	CreatedAt types.String  `tfsdk:"created_at"`
+	CreatedBy IdendityModel `tfsdk:"created_by"`
 }
 
 func NewGraphApiKeyResource() resource.Resource {
@@ -39,14 +40,14 @@ func (r *GraphApiKeyResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Graph API Key",
+		Description: "Provides a resource to manage a Graph API Key.",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
 				Description: "Graph ID",
 				Required:    true,
 			},
 			"id": schema.StringAttribute{
-				Description: "Api key ID",
+				Description: "API key ID",
 				Computed:    true,
 			},
 			"key_name": schema.StringAttribute{
@@ -65,6 +66,20 @@ func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"created_at": schema.StringAttribute{
 				Description: "Creation date",
 				Computed:    true,
+			},
+			"created_by": schema.SingleNestedAttribute{
+				Description: "Creator of the key",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Description: "Identity ID",
+						Computed:    true,
+					},
+					"name": schema.StringAttribute{
+						Description: "Identity name",
+						Computed:    true,
+					},
+				},
 			},
 		},
 	}
