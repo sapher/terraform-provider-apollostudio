@@ -8,7 +8,7 @@ import (
 )
 
 type ApolloClient struct {
-	orgId     string
+	OrgId     string
 	gqlClient *graphql.Client
 }
 
@@ -68,9 +68,17 @@ type GraphApiKey struct {
 	CreatedBy Identity
 }
 
+type GitContext struct {
+	Branch    string
+	Commit    string
+	Committer string
+	Message   string
+	RemoteUrl string
+}
+
 func NewClient(host string, apiKey string, orgId string) *ApolloClient {
 	return &ApolloClient{
-		orgId: orgId,
+		OrgId: orgId,
 		gqlClient: graphql.NewClient(host, http.DefaultClient).WithRequestModifier(func(r *http.Request) {
 			r.Header.Set("x-api-key", apiKey)
 		}),
@@ -105,7 +113,7 @@ func (c *ApolloClient) GetOrganization(ctx context.Context) (Organization, error
 		} `graphql:"organization(id: $orgId)"`
 	}
 	vars := map[string]interface{}{
-		"orgId": graphql.ID(c.orgId),
+		"orgId": graphql.ID(c.OrgId),
 	}
 	err := c.gqlClient.Query(ctx, &query, vars)
 	if err != nil {
@@ -127,7 +135,7 @@ func (c *ApolloClient) GetGraphs(ctx context.Context) ([]Graph, error) {
 		} `graphql:"organization(id: $orgId)"`
 	}
 	vars := map[string]interface{}{
-		"orgId": graphql.ID(c.orgId),
+		"orgId": graphql.ID(c.OrgId),
 	}
 	err := c.gqlClient.Query(ctx, &query, vars)
 	if err != nil {
@@ -169,6 +177,40 @@ func (c *ApolloClient) GetGraph(ctx context.Context, graphId string) (Graph, err
 		GraphType:        query.Graph.GraphType,
 		ReportingEnabled: query.Graph.ReportingEnabled,
 	}, nil
+}
+
+func (c *ApolloClient) UpdateGraphTitle(ctx context.Context, graphId string, newTitle string) error {
+	var mutation struct {
+		Service struct {
+			UpdateTitle string `graphql:"updateTitle(title: $newTitle)"`
+		} `service:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId":  graphql.ID(graphId),
+		"newTitle": graphql.String(newTitle),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ApolloClient) UpdateGraphDescription(ctx context.Context, graphId string, newDescription string) error {
+	var mutation struct {
+		Service struct {
+			UpdateDescription string `graphql:"updateDescription(description: $newDescription)"`
+		} `service:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId":        graphql.ID(graphId),
+		"newDescription": graphql.String(newDescription),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (c *ApolloClient) GetGraphVariant(ctx context.Context, variantRef string) (GraphVariant, error) {
@@ -450,4 +492,55 @@ func (c *ApolloClient) RemoveSubGraph(ctx context.Context, graphId string, varia
 		return err
 	}
 	return nil
+}
+
+func (c *ApolloClient) RemoveGraph(ctx context.Context, graphId string) error {
+	var mutation struct {
+		Graph struct {
+			Delete struct {
+			}
+		} `graphql:"graph(id: $graphId)"`
+	}
+	vars := map[string]interface{}{
+		"graphId": graphql.ID(graphId),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *ApolloClient) CreateGraph(ctx context.Context, graphName string, title string, description string) (Graph, error) {
+	var mutation struct {
+		NewService struct {
+			Id               string
+			Name             string
+			Title            string
+			Description      string
+			GraphType        string
+			ReportingEnabled bool
+			AccountId        string
+		} `graphql:"newService(accountId: $accountId, id: $graphId, name: $graphName, title: $title, description: $description)"`
+	}
+	vars := map[string]interface{}{
+		"accountId":   graphql.ID(c.OrgId),
+		"graphId":     graphql.ID(graphName),
+		"graphName":   graphql.String(graphName),
+		"title":       graphql.String(title),
+		"description": graphql.String(description),
+	}
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
+	if err != nil {
+		return Graph{}, err
+	}
+	return Graph{
+		Id:               mutation.NewService.Id,
+		Name:             mutation.NewService.Name,
+		Title:            mutation.NewService.Title,
+		Description:      mutation.NewService.Description,
+		GraphType:        mutation.NewService.GraphType,
+		ReportingEnabled: mutation.NewService.ReportingEnabled,
+		AccountId:        mutation.NewService.AccountId,
+	}, nil
 }

@@ -129,6 +129,7 @@ func (p *ApolloProvider) Resources(ctx context.Context) []func() resource.Resour
 	return []func() resource.Resource{
 		NewGraphApiKeyResource,
 		NewSubGraphResource,
+		NewGraphResource,
 	}
 }
 
