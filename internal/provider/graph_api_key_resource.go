@@ -7,8 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var (
@@ -21,12 +20,8 @@ type GraphApiKeyResource struct {
 }
 
 type GraphApiKeyResourceModel struct {
-	GraphId   types.String `tfsdk:"graph_id"`
-	Id        types.String `tfsdk:"id"`
-	KeyName   types.String `tfsdk:"key_name"`
-	Role      types.String `tfsdk:"role"`
-	Token     types.String `tfsdk:"token"`
-	CreatedAt types.String `tfsdk:"created_at"`
+	GraphId types.String `tfsdk:"graph_id"`
+	GraphApiKeyDataSourceModel
 }
 
 func NewGraphApiKeyResource() resource.Resource {
@@ -39,32 +34,46 @@ func (r *GraphApiKeyResource) Metadata(_ context.Context, req resource.MetadataR
 
 func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Graph API Key",
+		Description: "Manage an API key for a specific graph",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
-				Description: "Graph ID",
+				Description: "ID of the graph",
 				Required:    true,
 			},
 			"id": schema.StringAttribute{
-				Description: "Api key ID",
+				Description: "ID of the API key",
 				Computed:    true,
 			},
 			"key_name": schema.StringAttribute{
-				Description: "Key name",
+				Description: "Name of the API key",
 				Required:    true,
 			},
 			"role": schema.StringAttribute{
-				Description: "Role",
+				Description: "Role of the API key. This role can be either `GRAPH_ADMIN`, `CONTRIBUTOR`, `DOCUMENTER`, `OBSERVER` or `CONSUMER`",
 				Computed:    true,
 			},
 			"token": schema.StringAttribute{
-				Description: "Token",
+				Description: "Authentication token of the API key. This value is only fully available when creating the API key, the current value is partially masked",
 				Computed:    true,
 				Sensitive:   true,
 			},
 			"created_at": schema.StringAttribute{
-				Description: "Creation date",
+				Description: "Creation date of the API key",
 				Computed:    true,
+			},
+			"created_by": schema.SingleNestedAttribute{
+				Description: "Creator of the API key",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"id": schema.StringAttribute{
+						Description: "ID of the entity who created the key",
+						Computed:    true,
+					},
+					"name": schema.StringAttribute{
+						Description: "Name of the entity who created the key",
+						Computed:    true,
+					},
+				},
 			},
 		},
 	}
@@ -89,8 +98,6 @@ func (r *GraphApiKeyResource) Configure(ctx context.Context, req resource.Config
 }
 
 func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	tflog.Warn(ctx, "Read")
-
 	// Get current state
 	var state GraphApiKeyResourceModel
 	diags := req.State.Get(ctx, &state)
@@ -103,17 +110,16 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 	apiKey, err := r.client.GetGraphApiKey(ctx, state.GraphId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error reading graph api key",
-			"Could not read graph api key "+state.Id.ValueString()+", unexpected error: "+err.Error(),
+			"Failed to get graph api key",
+			fmt.Sprintf("Failed to get graph api key: %s", err.Error()),
 		)
 		return
 	}
 
 	if apiKey.Id == "" {
-		tflog.Warn(ctx, "API key not found")
 		resp.Diagnostics.AddError(
-			"API key not found",
-			"Could not read graph api key "+state.Id.ValueString()+" as it does not exist",
+			"Failed to get graph api key",
+			fmt.Sprintf("Unable to find graph api key with ID %s", state.Id.ValueString()),
 		)
 		return
 	} else {
@@ -122,6 +128,10 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 		state.Role = types.StringValue(apiKey.Role)
 		state.KeyName = types.StringValue(apiKey.KeyName)
 		state.CreatedAt = types.StringValue(apiKey.CreatedAt)
+		state.CreatedBy = IdendityModel{
+			Id:   types.StringValue(apiKey.CreatedBy.Id),
+			Name: types.StringValue(apiKey.CreatedBy.Name),
+		}
 	}
 
 	// Set refreshed state
@@ -133,8 +143,6 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 }
 
 func (r *GraphApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	tflog.Warn(ctx, "Create")
-
 	// Return values from plan
 	var plan GraphApiKeyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -158,6 +166,10 @@ func (r *GraphApiKeyResource) Create(ctx context.Context, req resource.CreateReq
 	plan.Role = types.StringValue(apiKey.Role)
 	plan.Token = types.StringValue(apiKey.Token)
 	plan.CreatedAt = types.StringValue(apiKey.CreatedAt)
+	plan.CreatedBy = IdendityModel{
+		Id:   types.StringValue(apiKey.CreatedBy.Id),
+		Name: types.StringValue(apiKey.CreatedBy.Name),
+	}
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -167,8 +179,6 @@ func (r *GraphApiKeyResource) Create(ctx context.Context, req resource.CreateReq
 }
 
 func (r *GraphApiKeyResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	tflog.Warn(ctx, "Update")
-
 	// Return values from plan
 	var plan GraphApiKeyResourceModel
 	diags := req.Plan.Get(ctx, &plan)
@@ -200,6 +210,7 @@ func (r *GraphApiKeyResource) Update(ctx context.Context, req resource.UpdateReq
 	plan.Role = state.Role
 	plan.Token = state.Token
 	plan.CreatedAt = state.CreatedAt
+	plan.CreatedBy = state.CreatedBy
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
@@ -209,8 +220,6 @@ func (r *GraphApiKeyResource) Update(ctx context.Context, req resource.UpdateReq
 }
 
 func (r *GraphApiKeyResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	tflog.Warn(ctx, "Delete")
-
 	// Retrieve values from state
 	var state GraphApiKeyResourceModel
 	diags := req.State.Get(ctx, &state)
@@ -223,8 +232,8 @@ func (r *GraphApiKeyResource) Delete(ctx context.Context, req resource.DeleteReq
 	err := r.client.RemoveGraphApiKey(ctx, state.GraphId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Error deleting graph api key",
-			"Could not delete graph api key "+state.Id.ValueString()+", unexpected error: "+err.Error(),
+			"Failed to delete graph api key",
+			"Failed to delete graph api key "+state.Id.ValueString()+", unexpected error: "+err.Error(),
 		)
 		return
 	}

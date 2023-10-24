@@ -3,12 +3,12 @@
 page_title: "apollostudio_graph_api_key Resource - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  Graph API Key
+  Manage an API key for a specific graph
 ---
 
 # apollostudio_graph_api_key (Resource)
 
-Graph API Key
+Manage an API key for a specific graph
 
 ## Example Usage
 
@@ -24,12 +24,21 @@ resource "apollostudio_graph_api_key" "this" {
 
 ### Required
 
-- `graph_id` (String) Graph ID
-- `key_name` (String) Key name
+- `graph_id` (String) ID of the graph
+- `key_name` (String) Name of the API key
 
 ### Read-Only
 
-- `created_at` (String) Creation date
-- `id` (String) Api key ID
-- `role` (String) Role
-- `token` (String, Sensitive) Token
+- `created_at` (String) Creation date of the API key
+- `created_by` (Attributes) Creator of the API key (see [below for nested schema](#nestedatt--created_by))
+- `id` (String) ID of the API key
+- `role` (String) Role of the API key. This role can be either `GRAPH_ADMIN`, `CONTRIBUTOR`, `DOCUMENTER`, `OBSERVER` or `CONSUMER`
+- `token` (String, Sensitive) Authentication token of the API key. This value is only fully available when creating the API key, the current value is partially masked
+
+<a id="nestedatt--created_by"></a>
+### Nested Schema for `created_by`
+
+Read-Only:
+
+- `id` (String) ID of the entity who created the key
+- `name` (String) Name of the entity who created the key

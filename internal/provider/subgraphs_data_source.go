@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &SubGraphsDataSource{}
@@ -40,51 +40,51 @@ func (d *SubGraphsDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (d *SubGraphsDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "List all subgraphs of the variant of a graph",
+		Description: "Provide details about a specific variant's subgraphs",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
-				Description: "Graph ID",
+				Description: "ID of the graph",
 				Required:    true,
 			},
 			"variant_name": schema.StringAttribute{
-				Description: "Variant name",
+				Description: "Name of the variant", // TODO: could be put optional, if the default value is current
 				Required:    true,
 			},
 			"include_deleted": schema.BoolAttribute{
-				Description: "Wether to include deleted subgraphs or not",
+				Description: "Boolean indicating if deleted subgraphs should be included in the result",
 				Optional:    true,
 			},
 			"subgraphs": schema.ListNestedAttribute{
-				Description: "List of subgraphs",
+				Description: "List of graph subgraphs",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"name": schema.StringAttribute{
-							Description: "Subgraph name",
+							Description: "Name of the subgraph",
 							Computed:    true,
 						},
 						"revision": schema.StringAttribute{
-							Description: "Subgraph revision",
+							Description: "Revision of the subgraph",
 							Computed:    true,
 						},
 						"url": schema.StringAttribute{
-							Description: "Subgraph URL",
+							Description: "Routing URL of the subgraph",
 							Computed:    true,
 						},
 						"active_partial_schema": schema.SingleNestedAttribute{
-							Description: "Active partial schema",
+							Description: "Provide details about the subgraph active schema",
 							Computed:    true,
 							Attributes: map[string]schema.Attribute{
 								"sdl": schema.StringAttribute{
-									Description: "SDL",
+									Description: "SDL of the active schema",
 									Computed:    true,
 								},
 								"created_at": schema.StringAttribute{
-									Description: "Creation date",
+									Description: "Creation date of the active schema",
 									Computed:    true,
 								},
 								"is_live": schema.BoolAttribute{
-									Description: "Whether the partial schema is live",
+									Description: "Boolean indicating if the active schema is live",
 									Computed:    true,
 								},
 							},
@@ -126,8 +126,8 @@ func (d *SubGraphsDataSource) Read(ctx context.Context, req datasource.ReadReque
 	subgraphs, err := d.client.GetSubGraphs(ctx, data.GraphId.ValueString(), data.VariantName.ValueString(), data.IncludeDeleted.ValueBool())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get subgraph", // TODO: change this
-			"Unable to get subgraph", // TODO: change this
+			"Failed to get subgraphs for the given graph",
+			fmt.Sprintf("Failed to get subgraphs for the given graph: %s", err.Error()),
 		)
 		return
 	}

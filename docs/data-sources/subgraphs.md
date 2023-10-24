@@ -3,12 +3,12 @@
 page_title: "apollostudio_subgraphs Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  List all subgraphs of the variant of a graph
+  Provide details about a specific variant's subgraphs
 ---
 
 # apollostudio_subgraphs (Data Source)
 
-List all subgraphs of the variant of a graph
+Provide details about a specific variant's subgraphs
 
 ## Example Usage
 
@@ -25,32 +25,32 @@ data "apollostudio_subgraphs" "this" {
 
 ### Required
 
-- `graph_id` (String) Graph ID
-- `variant_name` (String) Variant name
+- `graph_id` (String) ID of the graph
+- `variant_name` (String) Name of the variant
 
 ### Optional
 
-- `include_deleted` (Boolean) Wether to include deleted subgraphs or not
+- `include_deleted` (Boolean) Boolean indicating if deleted subgraphs should be included in the result
 
 ### Read-Only
 
-- `subgraphs` (Attributes List) List of subgraphs (see [below for nested schema](#nestedatt--subgraphs))
+- `subgraphs` (Attributes List) List of graph subgraphs (see [below for nested schema](#nestedatt--subgraphs))
 
 <a id="nestedatt--subgraphs"></a>
 ### Nested Schema for `subgraphs`
 
 Read-Only:
 
-- `active_partial_schema` (Attributes) Active partial schema (see [below for nested schema](#nestedatt--subgraphs--active_partial_schema))
-- `name` (String) Subgraph name
-- `revision` (String) Subgraph revision
-- `url` (String) Subgraph URL
+- `active_partial_schema` (Attributes) Provide details about the subgraph active schema (see [below for nested schema](#nestedatt--subgraphs--active_partial_schema))
+- `name` (String) Name of the subgraph
+- `revision` (String) Revision of the subgraph
+- `url` (String) Routing URL of the subgraph
 
 <a id="nestedatt--subgraphs--active_partial_schema"></a>
 ### Nested Schema for `subgraphs.active_partial_schema`
 
 Read-Only:
 
-- `created_at` (String) Creation date
-- `is_live` (Boolean) Whether the partial schema is live
-- `sdl` (String) SDL
+- `created_at` (String) Creation date of the active schema
+- `is_live` (Boolean) Boolean indicating if the active schema is live
+- `sdl` (String) SDL of the active schema

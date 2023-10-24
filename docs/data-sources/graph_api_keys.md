@@ -3,12 +3,12 @@
 page_title: "apollostudio_graph_api_keys Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  List of api keys for a given graph
+  Provide details about a specific graph's API keys
 ---
 
 # apollostudio_graph_api_keys (Data Source)
 
-List of api keys for a given graph
+Provide details about a specific graph's API keys
 
 ## Example Usage
 
@@ -23,28 +23,28 @@ data "apollostudio_graph_api_keys" "this" {
 
 ### Required
 
-- `graph_id` (String) Graph ID
+- `graph_id` (String) ID of the graph linked to the API keys
 
 ### Read-Only
 
-- `api_keys` (Attributes List) (see [below for nested schema](#nestedatt--api_keys))
+- `api_keys` (Attributes List) List of API keys (see [below for nested schema](#nestedatt--api_keys))
 
 <a id="nestedatt--api_keys"></a>
 ### Nested Schema for `api_keys`
 
 Read-Only:
 
-- `created_at` (String) Key creation date
-- `created_by` (Attributes) Creator of the key (see [below for nested schema](#nestedatt--api_keys--created_by))
-- `id` (String) Api key ID
-- `key_name` (String) Key name
-- `role` (String) Key role
-- `token` (String) Key token
+- `created_at` (String) Creation date of the API key
+- `created_by` (Attributes) Creator of the API key (see [below for nested schema](#nestedatt--api_keys--created_by))
+- `id` (String) ID of the API key
+- `key_name` (String) Name of the API key
+- `role` (String) Role of the API key. This role can be either `GRAPH_ADMIN`, `CONTRIBUTOR`, `DOCUMENTER`, `OBSERVER` or `CONSUMER`
+- `token` (String, Sensitive) Authentication token of the API key. This value is only fully available when creating the API key, the current value is partially masked
 
 <a id="nestedatt--api_keys--created_by"></a>
 ### Nested Schema for `api_keys.created_by`
 
 Read-Only:
 
-- `id` (String) Identity ID
-- `name` (String) Identity name
+- `id` (String) ID of the entity who created the key
+- `name` (String) Name of the entity who created the key

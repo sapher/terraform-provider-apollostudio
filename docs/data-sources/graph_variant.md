@@ -3,12 +3,12 @@
 page_title: "apollostudio_graph_variant Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  Specific Graph variant
+  Provide details about a specific graph variant
 ---
 
 # apollostudio_graph_variant (Data Source)
 
-Specific Graph variant
+Provide details about a specific graph variant
 
 ## Example Usage
 
@@ -23,9 +23,8 @@ data "apollostudio_graph_variant" "this" {
 
 ### Required
 
-- `id` (String) Graph variant ID
+- `id` (String) ID of the variant
 
 ### Read-Only
 
-- `has_supergraph_schema` (Boolean) Whether the variant has a supergraph schema
-- `name` (String) Graph variant name
+- `name` (String) Name of the variant

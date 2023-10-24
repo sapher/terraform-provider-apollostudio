@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &GraphApiKeysDataSource{}
@@ -40,46 +40,48 @@ func (d *GraphApiKeysDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *GraphApiKeysDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "List of api keys for a given graph", // TODO: change this
+		Description: "Provide details about a specific graph's API keys",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
-				Description: "Graph ID",
+				Description: "ID of the graph linked to the API keys",
 				Required:    true,
 			},
 			"api_keys": schema.ListNestedAttribute{
-				Computed: true,
+				Description: "List of API keys",
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description: "Api key ID",
+							Description: "ID of the API key",
 							Computed:    true,
 						},
 						"key_name": schema.StringAttribute{
-							Description: "Key name",
+							Description: "Name of the API key",
 							Computed:    true,
 						},
 						"role": schema.StringAttribute{
-							Description: "Key role",
+							Description: "Role of the API key. This role can be either `GRAPH_ADMIN`, `CONTRIBUTOR`, `DOCUMENTER`, `OBSERVER` or `CONSUMER`",
 							Computed:    true,
 						},
 						"token": schema.StringAttribute{
-							Description: "Key token",
+							Description: "Authentication token of the API key. This value is only fully available when creating the API key, the current value is partially masked",
 							Computed:    true,
+							Sensitive:   true,
 						},
 						"created_at": schema.StringAttribute{
-							Description: "Key creation date",
+							Description: "Creation date of the API key",
 							Computed:    true,
 						},
 						"created_by": schema.SingleNestedAttribute{
-							Description: "Creator of the key",
+							Description: "Creator of the API key",
 							Computed:    true,
 							Attributes: map[string]schema.Attribute{
 								"id": schema.StringAttribute{
-									Description: "Identity ID",
+									Description: "ID of the entity who created the key",
 									Computed:    true,
 								},
 								"name": schema.StringAttribute{
-									Description: "Identity name",
+									Description: "Name of the entity who created the key",
 									Computed:    true,
 								},
 							},
@@ -121,8 +123,8 @@ func (d *GraphApiKeysDataSource) Read(ctx context.Context, req datasource.ReadRe
 	graphApiKeys, err := d.client.GetGraphApiKeys(ctx, data.GraphId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get graph", // TODO: change this
-			"Unable to get graph", // TODO: change this
+			"Failed to get graph",
+			fmt.Sprintf("Failed to get graph: %s", err.Error()),
 		)
 		return
 	}

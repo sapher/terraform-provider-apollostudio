@@ -3,12 +3,12 @@
 page_title: "apollostudio_graph_variants Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  List of variants for a given graph
+  Provide details about a specific graph variants
 ---
 
 # apollostudio_graph_variants (Data Source)
 
-List of variants for a given graph
+Provide details about a specific graph variants
 
 ## Example Usage
 
@@ -23,17 +23,16 @@ data "apollostudio_graph_variants" "this" {
 
 ### Required
 
-- `graph_id` (String) Graph ID
+- `graph_id` (String) ID of the graph
 
 ### Read-Only
 
-- `variants` (Attributes List) (see [below for nested schema](#nestedatt--variants))
+- `variants` (Attributes List) List of graph variants (see [below for nested schema](#nestedatt--variants))
 
 <a id="nestedatt--variants"></a>
 ### Nested Schema for `variants`
 
 Read-Only:
 
-- `has_supergraph_schema` (Boolean) Whether the variant has a supergraph schema
-- `id` (String) Variant ID
-- `name` (String) Variant name
+- `id` (String) ID of the variant
+- `name` (String) Name of the variant

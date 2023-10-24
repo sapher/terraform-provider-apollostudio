@@ -3,12 +3,12 @@
 page_title: "apollostudio_me Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  Current authenticated user
+  Provides details about the current authenticated user
 ---
 
 # apollostudio_me (Data Source)
 
-Current authenticated user
+Provides details about the current authenticated user
 
 ## Example Usage
 
@@ -21,5 +21,5 @@ data "apollostudio_me" "current" {}
 
 ### Read-Only
 
-- `id` (String) User ID
-- `name` (String) User name
+- `id` (String) ID of the user
+- `name` (String) Name of the user

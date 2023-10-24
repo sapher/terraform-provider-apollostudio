@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &OrganizationDataSource{}
@@ -16,13 +16,7 @@ type OrganizationDataSource struct {
 	client *client.ApolloClient
 }
 
-type OrganizationDataSourceModel struct {
-	Id               types.String `tfsdk:"id"`
-	Name             types.String `tfsdk:"name"`
-	IsOnTrial        types.Bool   `tfsdk:"is_on_trial"`
-	IsOnExpiredTrial types.Bool   `tfsdk:"is_on_expired_trial"`
-	IsLocked         types.Bool   `tfsdk:"is_locked"`
-}
+type OrganizationDataSourceModel IdendityModel
 
 func NewOrganizationDataSource() datasource.DataSource {
 	return &OrganizationDataSource{}
@@ -34,26 +28,14 @@ func (d *OrganizationDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *OrganizationDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Current organization on Apollo Studio. This is the organization defined by `org_id` in the provider.", // TODO: change this
+		Description: "Provides details about the current organization",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Organization ID", // TODO: change this
+				Description: "ID of the organization",
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Organization name", // TODO: change this
-				Computed:    true,
-			},
-			"is_on_trial": schema.BoolAttribute{
-				Description: "Whether the organization is on trial period",
-				Computed:    true,
-			},
-			"is_on_expired_trial": schema.BoolAttribute{
-				Description: "Wether the organization trial period has expired",
-				Computed:    true,
-			},
-			"is_locked": schema.BoolAttribute{
-				Description: "Whether the organization is locked",
+				Description: "Name of the Organization",
 				Computed:    true,
 			},
 		},
@@ -90,17 +72,14 @@ func (d *OrganizationDataSource) Read(ctx context.Context, req datasource.ReadRe
 	org, err := d.client.GetOrganization(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get organization", // TODO: change this
-			"Unable to get the current organization",
+			"Failed to get organization",
+			fmt.Sprintf("Failed to get organization: %s", err.Error()),
 		)
 		return
 	}
 
 	data.Id = types.StringValue(org.Id)
 	data.Name = types.StringValue(org.Name)
-	data.IsOnTrial = types.BoolValue(org.IsOnTrial)
-	data.IsOnExpiredTrial = types.BoolValue(org.IsOnExpiredTrial)
-	data.IsLocked = types.BoolValue(org.IsLocked)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

@@ -10,8 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ provider.Provider = &ApolloProvider{}
@@ -41,19 +40,19 @@ func (p *ApolloProvider) Metadata(ctx context.Context, req provider.MetadataRequ
 
 func (p *ApolloProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Interact with Apollo Studio",
+		Description: "Interact with Apollo GraphQL API",
 		Attributes: map[string]schema.Attribute{
 			"host": schema.StringAttribute{
-				Description: "Host of the Apollo GraphQL API. Defaults to https://graphql.api.apollographql.com/api/graphql",
+				Description: "Host of the Apollo GraphQL API. Defaults to `https://graphql.api.apollographql.com/api/graphql`",
 				Optional:    true,
 			},
 			"api_key": schema.StringAttribute{
-				Description: "API key for the Apollo GraphQL API. Can also be set via the APOLLO_KEY environment variable",
+				Description: "API key to authenticate to Apollo GraphQL API. Can also be set via the `APOLLO_KEY` environment variable",
 				Optional:    true,
 			},
 			"org_id": schema.StringAttribute{
-				Description: "Organization ID on Apollo Studio. Can also be set via the APOLLO_ORG_ID environment variable",
-				Required:    true,
+				Description: "Organization ID on Apollo GraphQL. Can also be set via the `APOLLO_ORG_ID` environment variable",
+				Optional:    true,
 			},
 		},
 	}
@@ -88,7 +87,7 @@ func (p *ApolloProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("host"),
 			"Missing Apollo host",
-			"Please set the host to the Apollo host",
+			"Please set the host so the client knows where to connect to",
 		)
 	}
 
@@ -96,28 +95,21 @@ func (p *ApolloProvider) Configure(ctx context.Context, req provider.ConfigureRe
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Apollo API key",
-			"Please set the api_key so the client can authenticate to the Apollo API",
+			"Please set the api_key so the client can authenticate",
 		)
 	}
 
 	if orgId == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("org_id"),
-			"Missing Apollo org ID",
-			"Please set the org_id to the Apollo org ID",
+			"Missing Apollo Organization ID",
+			"Please set the org_id to the ID of the organization you want to interact with",
 		)
 	}
 
 	if resp.Diagnostics.HasError() {
 		return
 	}
-
-	ctx = tflog.SetField(ctx, "apollo_host", host)
-	ctx = tflog.SetField(ctx, "apollo_api_key", apiKey)
-	ctx = tflog.SetField(ctx, "apollo_org_id", orgId)
-	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "apollo_api_key")
-
-	tflog.Info(ctx, "Configured Apollo provider")
 
 	client := client.NewClient(host, apiKey, orgId)
 
