@@ -3,12 +3,12 @@
 page_title: "apollostudio_graphs Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  List all graphs of the organization
+  Provide details about a specific organization's graphs
 ---
 
 # apollostudio_graphs (Data Source)
 
-List all graphs of the organization
+Provide details about a specific organization's graphs
 
 ## Example Usage
 
@@ -28,13 +28,12 @@ data "apollostudio_graphs" "this" {}
 
 Required:
 
-- `id` (String) Graph ID
+- `id` (String) ID of the graph
 
 Read-Only:
 
-- `account_id` (String) Account ID
-- `description` (String) Graph description
-- `graph_type` (String) Graph type
-- `name` (String) Graph name
-- `reporting_enabled` (Boolean) Whether reporting is enabled for the graph
-- `title` (String) Graph title
+- `description` (String) Description of the graph
+- `graph_type` (String) Type of the graph
+- `name` (String) Name of the graph
+- `reporting_enabled` (Boolean) Boolean indicating if reporting is enabled for the graph
+- `title` (String) Title of the graph

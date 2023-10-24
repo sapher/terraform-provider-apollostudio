@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &MeDataSource{}
@@ -16,10 +16,7 @@ type MeDataSource struct {
 	client *client.ApolloClient
 }
 
-type MeDataSourceModel struct {
-	Id   types.String `tfsdk:"id"`
-	Name types.String `tfsdk:"name"`
-}
+type MeDataSourceModel IdendityModel
 
 func NewMeDataSource() datasource.DataSource {
 	return &MeDataSource{}
@@ -31,14 +28,14 @@ func (d *MeDataSource) Metadata(_ context.Context, req datasource.MetadataReques
 
 func (d *MeDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Current authenticated user", // TODO: change this
+		Description: "Provides details about the current authenticated user",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "User ID",
+				Description: "ID of the user",
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "User name",
+				Description: "Name of the user",
 				Computed:    true,
 			},
 		},
@@ -75,8 +72,8 @@ func (d *MeDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	me, err := d.client.GetMe(ctx)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get the current authenticated user", // TODO: change this
-			"Unable to get date for the current user",
+			"Failed to get current user",
+			fmt.Sprintf("Failed to get current user: %s", err.Error()),
 		)
 		return
 	}

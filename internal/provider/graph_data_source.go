@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &GraphDataSource{}
@@ -23,7 +23,6 @@ type GraphDataSourceModel struct {
 	Description      types.String `tfsdk:"description"`
 	GraphType        types.String `tfsdk:"graph_type"`
 	ReportingEnabled types.Bool   `tfsdk:"reporting_enabled"`
-	AccountId        types.String `tfsdk:"account_id"`
 }
 
 func NewGraphDataSource() datasource.DataSource {
@@ -36,34 +35,30 @@ func (d *GraphDataSource) Metadata(_ context.Context, req datasource.MetadataReq
 
 func (d *GraphDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Graph", // TODO: change this
+		Description: "Provide details about a specific graph",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Graph ID",
+				Description: "ID of the graph",
 				Required:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Graph name",
+				Description: "Name of the graph",
 				Computed:    true,
 			},
 			"title": schema.StringAttribute{
-				Description: "Graph title",
+				Description: "Title of the graph",
 				Computed:    true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Graph description",
+				Description: "Description of the graph",
 				Computed:    true,
 			},
 			"graph_type": schema.StringAttribute{
-				Description: "Graph type",
+				Description: "Type of the graph",
 				Computed:    true,
 			},
 			"reporting_enabled": schema.BoolAttribute{
-				Description: "Whether reporting is enabled for the graph",
-				Computed:    true,
-			},
-			"account_id": schema.StringAttribute{
-				Description: "Account ID",
+				Description: "Boolean indicating if reporting is enabled for the graph",
 				Computed:    true,
 			},
 		},
@@ -100,8 +95,8 @@ func (d *GraphDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	graph, err := d.client.GetGraph(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get graph", // TODO: change this
-			"Unable to get graph", // TODO: change this
+			"Failed to get graph",
+			fmt.Sprintf("Failed to get graph: %s", err.Error()),
 		)
 		return
 	}
@@ -111,7 +106,6 @@ func (d *GraphDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	data.Description = types.StringValue(graph.Description)
 	data.GraphType = types.StringValue(graph.GraphType)
 	data.ReportingEnabled = types.BoolValue(graph.ReportingEnabled)
-	data.AccountId = types.StringValue(graph.AccountId)
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

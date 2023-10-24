@@ -7,7 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/sapher/terraform-provider-apollostudio/client"
+	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
 var _ datasource.DataSource = &GraphVariantsDataSource{}
@@ -31,26 +31,23 @@ func (d *GraphVariantsDataSource) Metadata(_ context.Context, req datasource.Met
 
 func (d *GraphVariantsDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "List of variants for a given graph", // TODO: change this
+		Description: "Provide details about a specific graph variants",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
-				Description: "Graph ID",
+				Description: "ID of the graph",
 				Required:    true,
 			},
 			"variants": schema.ListNestedAttribute{
-				Computed: true,
+				Description: "List of graph variants",
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description: "Variant ID",
+							Description: "ID of the variant",
 							Computed:    true,
 						},
 						"name": schema.StringAttribute{
-							Description: "Variant name",
-							Computed:    true,
-						},
-						"has_supergraph_schema": schema.BoolAttribute{
-							Description: "Whether the variant has a supergraph schema",
+							Description: "Name of the variant",
 							Computed:    true,
 						},
 					},
@@ -90,17 +87,16 @@ func (d *GraphVariantsDataSource) Read(ctx context.Context, req datasource.ReadR
 	graphVariants, err := d.client.GetGraphVariants(ctx, data.GraphId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"failed to get graph", // TODO: change this
-			"Unable to get graph", // TODO: change this
+			"Failed to get variants for the given graph",
+			fmt.Sprintf("Failed to get variants for the given graph: %s", err.Error()),
 		)
 		return
 	}
 
 	for _, graphVariant := range graphVariants {
 		data.GraphVariants = append(data.GraphVariants, GraphVariantDataSourceModel{
-			Id:                  types.StringValue(graphVariant.Id),
-			Name:                types.StringValue(graphVariant.Name),
-			HasSupergraphSchema: types.BoolValue(graphVariant.HasSupergraphSchema),
+			Id:   types.StringValue(graphVariant.Id),
+			Name: types.StringValue(graphVariant.Name),
 		})
 	}
 

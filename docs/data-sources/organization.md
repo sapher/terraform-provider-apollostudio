@@ -3,12 +3,12 @@
 page_title: "apollostudio_organization Data Source - terraform-provider-apollostudio"
 subcategory: ""
 description: |-
-  Current organization on Apollo Studio. This is the organization defined by org_id in the provider.
+  Provides details about the current organization
 ---
 
 # apollostudio_organization (Data Source)
 
-Current organization on Apollo Studio. This is the organization defined by `org_id` in the provider.
+Provides details about the current organization
 
 ## Example Usage
 
@@ -21,8 +21,5 @@ data "apollostudio_organization" "current" {}
 
 ### Read-Only
 
-- `id` (String) Organization ID
-- `is_locked` (Boolean) Whether the organization is locked
-- `is_on_expired_trial` (Boolean) Wether the organization trial period has expired
-- `is_on_trial` (Boolean) Whether the organization is on trial period
-- `name` (String) Organization name
+- `id` (String) ID of the organization
+- `name` (String) Name of the Organization
