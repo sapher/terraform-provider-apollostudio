@@ -16,11 +16,17 @@ type SubGraphsDataSource struct {
 	client *client.ApolloClient
 }
 
+type PartialSchemaModel struct {
+	Sdl       types.String `tfsdk:"sdl"`
+	CreatedAt types.String `tfsdk:"created_at"`
+	IsLive    types.Bool   `tfsdk:"is_live"`
+}
+
 type SubGraphDataSourceModel struct {
-	Name                types.String       `tfsdk:"name"`
-	Revision            types.String       `tfsdk:"revision"`
-	Url                 types.String       `tfsdk:"url"`
-	ActivePartialSchema PartialSchemaModel `tfsdk:"active_partial_schema"`
+	Name         types.String       `tfsdk:"name"`
+	Revision     types.String       `tfsdk:"revision"`
+	Url          types.String       `tfsdk:"url"`
+	ActiveSchema PartialSchemaModel `tfsdk:"active_schema"`
 }
 
 type SubGraphsDataSourceModel struct {
@@ -71,7 +77,7 @@ func (d *SubGraphsDataSource) Schema(_ context.Context, req datasource.SchemaReq
 							Description: "Routing URL of the subgraph",
 							Computed:    true,
 						},
-						"active_partial_schema": schema.SingleNestedAttribute{
+						"active_schema": schema.SingleNestedAttribute{
 							Description: "Provide details about the subgraph active schema",
 							Computed:    true,
 							Attributes: map[string]schema.Attribute{
@@ -137,10 +143,10 @@ func (d *SubGraphsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			Name:     types.StringValue(subgraph.Name),
 			Revision: types.StringValue(subgraph.Revision),
 			Url:      types.StringValue(subgraph.Url),
-			ActivePartialSchema: PartialSchemaModel{
-				Sdl:       types.StringValue(subgraph.ActivePartialSchema.Sdl),
-				CreatedAt: types.StringValue(subgraph.ActivePartialSchema.CreatedAt),
-				IsLive:    types.BoolValue(subgraph.ActivePartialSchema.IsLive),
+			ActiveSchema: PartialSchemaModel{
+				Sdl:       types.StringValue(subgraph.ActiveSchema.Sdl),
+				CreatedAt: types.StringValue(subgraph.ActiveSchema.CreatedAt),
+				IsLive:    types.BoolValue(subgraph.ActiveSchema.IsLive),
 			},
 		})
 	}

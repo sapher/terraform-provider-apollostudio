@@ -4,6 +4,7 @@ go 1.21.3
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.4.1
+	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hasura/go-graphql-client v0.10.0
 )
 

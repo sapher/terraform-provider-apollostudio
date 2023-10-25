@@ -20,8 +20,13 @@ type GraphApiKeyResource struct {
 }
 
 type GraphApiKeyResourceModel struct {
-	GraphId types.String `tfsdk:"graph_id"`
-	GraphApiKeyDataSourceModel
+	GraphId   types.String  `tfsdk:"graph_id"`
+	Id        types.String  `tfsdk:"id"`
+	KeyName   types.String  `tfsdk:"key_name"`
+	Role      types.String  `tfsdk:"role"`
+	Token     types.String  `tfsdk:"token"`
+	CreatedAt types.String  `tfsdk:"created_at"`
+	CreatedBy IdendityModel `tfsdk:"created_by"`
 }
 
 func NewGraphApiKeyResource() resource.Resource {
@@ -116,22 +121,20 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 		return
 	}
 
+	// If not found
 	if apiKey.Id == "" {
-		resp.Diagnostics.AddError(
-			"Failed to get graph api key",
-			fmt.Sprintf("Unable to find graph api key with ID %s", state.Id.ValueString()),
-		)
+		resp.State.RemoveResource(ctx)
 		return
-	} else {
-		// Override state with refreshed values
-		state.Id = types.StringValue(apiKey.Id)
-		state.Role = types.StringValue(apiKey.Role)
-		state.KeyName = types.StringValue(apiKey.KeyName)
-		state.CreatedAt = types.StringValue(apiKey.CreatedAt)
-		state.CreatedBy = IdendityModel{
-			Id:   types.StringValue(apiKey.CreatedBy.Id),
-			Name: types.StringValue(apiKey.CreatedBy.Name),
-		}
+	}
+
+	// Override state with refreshed values
+	state.Id = types.StringValue(apiKey.Id)
+	state.Role = types.StringValue(apiKey.Role)
+	state.KeyName = types.StringValue(apiKey.KeyName)
+	state.CreatedAt = types.StringValue(apiKey.CreatedAt)
+	state.CreatedBy = IdendityModel{
+		Id:   types.StringValue(apiKey.CreatedBy.Id),
+		Name: types.StringValue(apiKey.CreatedBy.Name),
 	}
 
 	// Set refreshed state

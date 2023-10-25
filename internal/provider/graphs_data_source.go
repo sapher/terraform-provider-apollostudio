@@ -45,16 +45,12 @@ func (d *GraphsDataSource) Schema(_ context.Context, req datasource.SchemaReques
 							Description: "Name of the graph",
 							Computed:    true,
 						},
-						"title": schema.StringAttribute{
-							Description: "Title of the graph",
-							Computed:    true,
-						},
 						"description": schema.StringAttribute{
 							Description: "Description of the graph",
 							Computed:    true,
 						},
 						"graph_type": schema.StringAttribute{
-							Description: "Type of the graph",
+							Description: "Type of the graph. This can be one of: `CLASSIC`, `CLOUD_SUPERGRAPH`",
 							Computed:    true,
 						},
 						"reporting_enabled": schema.BoolAttribute{
@@ -108,7 +104,6 @@ func (d *GraphsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		data.Graphs = append(data.Graphs, GraphDataSourceModel{
 			Id:               types.StringValue(graph.Id),
 			Name:             types.StringValue(graph.Name),
-			Title:            types.StringValue(graph.Title),
 			Description:      types.StringValue(graph.Description),
 			GraphType:        types.StringValue(graph.GraphType),
 			ReportingEnabled: types.BoolValue(graph.ReportingEnabled),

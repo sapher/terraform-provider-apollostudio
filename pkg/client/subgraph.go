@@ -13,10 +13,10 @@ type PartialSchema struct {
 }
 
 type SubGraph struct {
-	Name                string
-	Revision            string
-	Url                 string
-	ActivePartialSchema PartialSchema
+	Name         string
+	Revision     string
+	Url          string
+	ActiveSchema PartialSchema
 }
 
 func (c *ApolloClient) GetSubGraphs(ctx context.Context, graphId string, variantName string, includeDeleted bool) ([]SubGraph, error) {

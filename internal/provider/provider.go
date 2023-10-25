@@ -120,6 +120,7 @@ func (p *ApolloProvider) Configure(ctx context.Context, req provider.ConfigureRe
 func (p *ApolloProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewGraphApiKeyResource,
+		NewGraphResource,
 	}
 }
 
