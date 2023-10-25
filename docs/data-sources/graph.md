@@ -28,7 +28,6 @@ data "apollostudio_graph" "this" {
 ### Read-Only
 
 - `description` (String) Description of the graph
-- `graph_type` (String) Type of the graph
+- `graph_type` (String) Type of the graph. This can be one of: `CLASSIC`, `CLOUD_SUPERGRAPH`
 - `name` (String) Name of the graph
 - `reporting_enabled` (Boolean) Boolean indicating if reporting is enabled for the graph
-- `title` (String) Title of the graph

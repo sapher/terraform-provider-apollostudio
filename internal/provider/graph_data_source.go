@@ -19,7 +19,6 @@ type GraphDataSource struct {
 type GraphDataSourceModel struct {
 	Id               types.String `tfsdk:"id"`
 	Name             types.String `tfsdk:"name"`
-	Title            types.String `tfsdk:"title"`
 	Description      types.String `tfsdk:"description"`
 	GraphType        types.String `tfsdk:"graph_type"`
 	ReportingEnabled types.Bool   `tfsdk:"reporting_enabled"`
@@ -45,16 +44,12 @@ func (d *GraphDataSource) Schema(_ context.Context, req datasource.SchemaRequest
 				Description: "Name of the graph",
 				Computed:    true,
 			},
-			"title": schema.StringAttribute{
-				Description: "Title of the graph",
-				Computed:    true,
-			},
 			"description": schema.StringAttribute{
 				Description: "Description of the graph",
 				Computed:    true,
 			},
 			"graph_type": schema.StringAttribute{
-				Description: "Type of the graph",
+				Description: "Type of the graph. This can be one of: `CLASSIC`, `CLOUD_SUPERGRAPH`",
 				Computed:    true,
 			},
 			"reporting_enabled": schema.BoolAttribute{
@@ -102,7 +97,6 @@ func (d *GraphDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	data.Name = types.StringValue(graph.Name)
-	data.Title = types.StringValue(graph.Title)
 	data.Description = types.StringValue(graph.Description)
 	data.GraphType = types.StringValue(graph.GraphType)
 	data.ReportingEnabled = types.BoolValue(graph.ReportingEnabled)

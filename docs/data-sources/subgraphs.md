@@ -41,13 +41,13 @@ data "apollostudio_subgraphs" "this" {
 
 Read-Only:
 
-- `active_partial_schema` (Attributes) Provide details about the subgraph active schema (see [below for nested schema](#nestedatt--subgraphs--active_partial_schema))
+- `active_schema` (Attributes) Provide details about the subgraph active schema (see [below for nested schema](#nestedatt--subgraphs--active_schema))
 - `name` (String) Name of the subgraph
 - `revision` (String) Revision of the subgraph
 - `url` (String) Routing URL of the subgraph
 
-<a id="nestedatt--subgraphs--active_partial_schema"></a>
-### Nested Schema for `subgraphs.active_partial_schema`
+<a id="nestedatt--subgraphs--active_schema"></a>
+### Nested Schema for `subgraphs.active_schema`
 
 Read-Only:
 
