@@ -3,9 +3,14 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
@@ -20,13 +25,12 @@ type GraphApiKeyResource struct {
 }
 
 type GraphApiKeyResourceModel struct {
-	GraphId   types.String  `tfsdk:"graph_id"`
-	Id        types.String  `tfsdk:"id"`
-	KeyName   types.String  `tfsdk:"key_name"`
-	Role      types.String  `tfsdk:"role"`
-	Token     types.String  `tfsdk:"token"`
-	CreatedAt types.String  `tfsdk:"created_at"`
-	CreatedBy IdendityModel `tfsdk:"created_by"`
+	GraphId   types.String `tfsdk:"graph_id"`
+	Id        types.String `tfsdk:"id"`
+	KeyName   types.String `tfsdk:"key_name"`
+	Role      types.String `tfsdk:"role"`
+	Token     types.String `tfsdk:"token"`
+	CreatedAt types.String `tfsdk:"created_at"`
 }
 
 func NewGraphApiKeyResource() resource.Resource {
@@ -44,6 +48,16 @@ func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"graph_id": schema.StringAttribute{
 				Description: "ID of the graph",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 40),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]+$`),
+						"must starts with a letter and contains only letters, numbers, and dashes",
+					),
+				},
 			},
 			"id": schema.StringAttribute{
 				Description: "ID of the API key",
@@ -52,6 +66,13 @@ func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"key_name": schema.StringAttribute{
 				Description: "Name of the API key",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 40),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9-]+$`),
+						"must starts with a letter and contains only letters, numbers, and dashes",
+					),
+				},
 			},
 			"role": schema.StringAttribute{
 				Description: "Role of the API key. This role can be either `GRAPH_ADMIN`, `CONTRIBUTOR`, `DOCUMENTER`, `OBSERVER` or `CONSUMER`",
@@ -65,20 +86,6 @@ func (r *GraphApiKeyResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"created_at": schema.StringAttribute{
 				Description: "Creation date of the API key",
 				Computed:    true,
-			},
-			"created_by": schema.SingleNestedAttribute{
-				Description: "Creator of the API key",
-				Computed:    true,
-				Attributes: map[string]schema.Attribute{
-					"id": schema.StringAttribute{
-						Description: "ID of the entity who created the key",
-						Computed:    true,
-					},
-					"name": schema.StringAttribute{
-						Description: "Name of the entity who created the key",
-						Computed:    true,
-					},
-				},
 			},
 		},
 	}
@@ -102,6 +109,47 @@ func (r *GraphApiKeyResource) Configure(ctx context.Context, req resource.Config
 	r.client = client
 }
 
+func (r *GraphApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
+	// Return values from plan
+	var plan GraphApiKeyResourceModel
+	diags := req.Plan.Get(ctx, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create the API key
+	apiKey, err := r.client.CreateGraphApiKey(ctx, plan.GraphId.ValueString(), plan.KeyName.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error creating graph api key",
+			"Could not create graph api key, unexpected error: "+err.Error(),
+		)
+		return
+	}
+
+	// GraphQL API does not return an error when the API key creation fails
+	if apiKey.Id == "" {
+		resp.Diagnostics.AddError(
+			"Error creating graph api key",
+			"Could not create graph api key, unexpected error. Might be the API key used to configure the provider does not have the right permissions to create API key on graph : "+plan.GraphId.ValueString()+".",
+		)
+		return
+	}
+
+	// Map response body to schema and populate response
+	plan.Id = types.StringValue(apiKey.Id)
+	plan.Role = types.StringValue(apiKey.Role)
+	plan.Token = types.StringValue(apiKey.Token)
+	plan.CreatedAt = types.StringValue(apiKey.CreatedAt)
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+}
+
 func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state GraphApiKeyResourceModel
@@ -123,7 +171,11 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// If not found
 	if apiKey.Id == "" {
-		resp.State.RemoveResource(ctx)
+		resp.Diagnostics.AddError(
+			"Failed to get graph api key",
+			fmt.Sprintf("Failed to get graph api key: %s because the API key wasn't found. Might have been deleted", state.Id.ValueString()),
+		)
+		// resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -132,49 +184,9 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 	state.Role = types.StringValue(apiKey.Role)
 	state.KeyName = types.StringValue(apiKey.KeyName)
 	state.CreatedAt = types.StringValue(apiKey.CreatedAt)
-	state.CreatedBy = IdendityModel{
-		Id:   types.StringValue(apiKey.CreatedBy.Id),
-		Name: types.StringValue(apiKey.CreatedBy.Name),
-	}
 
 	// Set refreshed state
 	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r *GraphApiKeyResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// Return values from plan
-	var plan GraphApiKeyResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Create the API key
-	apiKey, err := r.client.CreateGraphApiKey(ctx, plan.GraphId.ValueString(), plan.KeyName.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating graph api key",
-			"Could not create graph api key, unexpected error: "+err.Error(),
-		)
-		return
-	}
-
-	// Map response body to schema and populate response
-	plan.Id = types.StringValue(apiKey.Id)
-	plan.Role = types.StringValue(apiKey.Role)
-	plan.Token = types.StringValue(apiKey.Token)
-	plan.CreatedAt = types.StringValue(apiKey.CreatedAt)
-	plan.CreatedBy = IdendityModel{
-		Id:   types.StringValue(apiKey.CreatedBy.Id),
-		Name: types.StringValue(apiKey.CreatedBy.Name),
-	}
-
-	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -213,7 +225,6 @@ func (r *GraphApiKeyResource) Update(ctx context.Context, req resource.UpdateReq
 	plan.Role = state.Role
 	plan.Token = state.Token
 	plan.CreatedAt = state.CreatedAt
-	plan.CreatedBy = state.CreatedBy
 
 	diags = resp.State.Set(ctx, plan)
 	resp.Diagnostics.Append(diags...)

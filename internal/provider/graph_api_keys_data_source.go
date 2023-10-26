@@ -17,12 +17,11 @@ type GraphApiKeysDataSource struct {
 }
 
 type GraphApiKeyDataSourceModel struct {
-	Id        types.String  `tfsdk:"id"`
-	KeyName   types.String  `tfsdk:"key_name"`
-	Role      types.String  `tfsdk:"role"`
-	Token     types.String  `tfsdk:"token"`
-	CreatedAt types.String  `tfsdk:"created_at"`
-	CreatedBy IdendityModel `tfsdk:"created_by"`
+	Id        types.String `tfsdk:"id"`
+	KeyName   types.String `tfsdk:"key_name"`
+	Role      types.String `tfsdk:"role"`
+	Token     types.String `tfsdk:"token"`
+	CreatedAt types.String `tfsdk:"created_at"`
 }
 
 type GraphApiKeysDataSourceModel struct {
@@ -40,7 +39,7 @@ func (d *GraphApiKeysDataSource) Metadata(_ context.Context, req datasource.Meta
 
 func (d *GraphApiKeysDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provide details about a specific graph's API keys",
+		Description: "Provide details about a specific graph's API keys. Beware that the API key token is partially masked when read, it's only available at creation time.",
 		Attributes: map[string]schema.Attribute{
 			"graph_id": schema.StringAttribute{
 				Description: "ID of the graph linked to the API keys",
@@ -66,25 +65,10 @@ func (d *GraphApiKeysDataSource) Schema(_ context.Context, req datasource.Schema
 						"token": schema.StringAttribute{
 							Description: "Authentication token of the API key. This value is only fully available when creating the API key, the current value is partially masked",
 							Computed:    true,
-							Sensitive:   true,
 						},
 						"created_at": schema.StringAttribute{
 							Description: "Creation date of the API key",
 							Computed:    true,
-						},
-						"created_by": schema.SingleNestedAttribute{
-							Description: "Creator of the API key",
-							Computed:    true,
-							Attributes: map[string]schema.Attribute{
-								"id": schema.StringAttribute{
-									Description: "ID of the entity who created the key",
-									Computed:    true,
-								},
-								"name": schema.StringAttribute{
-									Description: "Name of the entity who created the key",
-									Computed:    true,
-								},
-							},
 						},
 					},
 				},
@@ -136,10 +120,6 @@ func (d *GraphApiKeysDataSource) Read(ctx context.Context, req datasource.ReadRe
 			Role:      types.StringValue(graphApiKey.Role),
 			Token:     types.StringValue(graphApiKey.Token),
 			CreatedAt: types.StringValue(graphApiKey.CreatedAt),
-			CreatedBy: IdendityModel{
-				Id:   types.StringValue(graphApiKey.CreatedBy.Id),
-				Name: types.StringValue(graphApiKey.CreatedBy.Name),
-			},
 		})
 	}
 

@@ -12,7 +12,6 @@ type GraphApiKey struct {
 	Role      string
 	Token     string
 	CreatedAt string
-	CreatedBy Identity
 }
 
 func (c *ApolloClient) GetGraphApiKeys(ctx context.Context, graphId string) ([]GraphApiKey, error) {
