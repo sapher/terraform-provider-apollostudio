@@ -7,6 +7,12 @@ Offers many data sources to query the Apollo Studio API.
 
 Any contributions are welcome!
 
+## Roadmap
+
+- [] Add support for `apollostudio_subgraph` resource
+- [] Add tests
+- [] Add documentation on terraform registry
+
 ## Local development
 
 **Clone repository**
@@ -35,7 +41,7 @@ Note that the path to the provider is absolute and should point to the folder wh
 
 This will force terraform to use the local provider instead of the one downloaded from the registry.
 
-**Usage**
+**Development usage**
 
 Then you can use it in your code like so :
 
@@ -56,6 +62,9 @@ provider "apollostudio" {
 data "apollostudio_graphs" "this" {}
 ```
 
+> Note that you don't have to run `terraform init` as the provider is already installed.
+
 ## Links
 
+- [Terraform Registry](https://registry.terraform.io/providers/sapher/apollostudio/latest)
 - [GraphOS Platform API Documentation](https://www.apollographql.com/docs/graphos/platform-api/)
