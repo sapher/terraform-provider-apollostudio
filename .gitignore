@@ -3,3 +3,4 @@ terraform-provider-apollostudio
 *.tfplan
 try
 client_main.go
+cli
