@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/hasura/go-graphql-client"
 )
@@ -56,12 +55,7 @@ func (c *ApolloClient) CreateGraph(ctx context.Context, id string, name string, 
 		"name":        graphql.String(name),
 		"description": graphql.String(description),
 	}
-	json, err := json.MarshalIndent(vars, "", "  ")
-	if err != nil {
-		return Graph{}, err
-	}
-	println(string(json))
-	err = c.gqlClient.Mutate(ctx, &mutation, vars)
+	err := c.gqlClient.Mutate(ctx, &mutation, vars)
 	if err != nil {
 		return Graph{}, err
 	}

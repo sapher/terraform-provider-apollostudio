@@ -112,7 +112,7 @@ func (d *SubGraphsDataSource) Configure(_ context.Context, req datasource.Config
 	if !ok {
 		resp.Diagnostics.AddError(
 			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *client.ApolloClientn got: %T. Please report this issue to the provider developers.", req.ProviderData),
+			fmt.Sprintf("Expected *client.ApolloClient got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
 	}
@@ -144,9 +144,9 @@ func (d *SubGraphsDataSource) Read(ctx context.Context, req datasource.ReadReque
 			Revision: types.StringValue(subgraph.Revision),
 			Url:      types.StringValue(subgraph.Url),
 			ActiveSchema: PartialSchemaModel{
-				Sdl:       types.StringValue(subgraph.ActiveSchema.Sdl),
-				CreatedAt: types.StringValue(subgraph.ActiveSchema.CreatedAt),
-				IsLive:    types.BoolValue(subgraph.ActiveSchema.IsLive),
+				Sdl:       types.StringValue(subgraph.ActivePartialSchema.Sdl),
+				CreatedAt: types.StringValue(subgraph.ActivePartialSchema.CreatedAt),
+				IsLive:    types.BoolValue(subgraph.ActivePartialSchema.IsLive),
 			},
 		})
 	}
