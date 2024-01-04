@@ -23,7 +23,7 @@ func NewOrganizationDataSource() datasource.DataSource {
 }
 
 func (d *OrganizationDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_organization"
+	resp.TypeName = req.ProviderTypeName + "_org"
 }
 
 func (d *OrganizationDataSource) Schema(_ context.Context, req datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -31,7 +31,7 @@ func (d *OrganizationDataSource) Schema(_ context.Context, req datasource.Schema
 		Description: "Provides details about the current organization",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "ID of the organization",
+				Description: "ID of the organization. Be mindful that this is ID can be changed by administrators and therefore should not be used as a unique identifier",
 				Computed:    true,
 			},
 			"name": schema.StringAttribute{
