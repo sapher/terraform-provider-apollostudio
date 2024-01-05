@@ -11,11 +11,6 @@ type ApolloClient struct {
 	gqlClient *graphql.Client
 }
 
-type Identity struct {
-	Id   string
-	Name string
-}
-
 func NewClient(host string, apiKey string, orgId string) *ApolloClient {
 	return &ApolloClient{
 		orgId: orgId,

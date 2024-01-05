@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
@@ -83,6 +84,8 @@ func (d *GraphVariantsDataSource) Read(ctx context.Context, req datasource.ReadR
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	tflog.Warn(ctx, "Reading graph variants for graph: "+data.GraphId.ValueString())
 
 	graphVariants, err := d.client.GetGraphVariants(ctx, data.GraphId.ValueString())
 	if err != nil {

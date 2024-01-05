@@ -14,7 +14,8 @@ Provide details about a specific graph variant
 
 ```terraform
 data "apollostudio_graph_variant" "this" {
-  ref = "your-graph-id@your-variant"
+  graph_id = "your-graph-id"
+  name     = "your-variant"
 }
 ```
 

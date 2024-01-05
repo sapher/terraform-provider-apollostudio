@@ -8,6 +8,7 @@ import (
 )
 
 func TestAccMeDataSource(t *testing.T) {
+	// Retrieve the current user from the client
 	cl := testClient()
 	me, _ := cl.GetMe(context.Background())
 

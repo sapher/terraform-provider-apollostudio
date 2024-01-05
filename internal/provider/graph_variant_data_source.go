@@ -3,9 +3,12 @@ package provider
 import (
 	"context"
 	"fmt"
+	"regexp"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
@@ -36,6 +39,13 @@ func (d *GraphVariantDataSource) Schema(_ context.Context, req datasource.Schema
 			"id": schema.StringAttribute{
 				Description: "ID of the variant",
 				Required:    true,
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 40),
+					stringvalidator.RegexMatches(
+						regexp.MustCompile(`^([a-zA-Z0-9_-]+)@([a-zA-Z0-9_-]+)$`),
+						"must be in the format of <graph-id>@<variant-name>",
+					),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the variant",
@@ -78,6 +88,15 @@ func (d *GraphVariantDataSource) Read(ctx context.Context, req datasource.ReadRe
 			"Failed to get graph variant",
 			fmt.Sprintf("Failed to get graph variant: %s", err.Error()),
 		)
+		return
+	}
+
+	if graphVariant.Id == "" {
+		resp.Diagnostics.AddError(
+			"Failed to get graph variant",
+			fmt.Sprintf("Failed to get graph variant: %s because the variant wasn't found.", data.Id.ValueString()),
+		)
+		// resp.State.RemoveResource(ctx)
 		return
 	}
 

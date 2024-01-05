@@ -8,6 +8,7 @@ import (
 )
 
 func TestAccOrgDataSource(t *testing.T) {
+	// Retrieve the current organization from the client
 	cl := testClient()
 	org, _ := cl.GetOrganization(context.Background())
 
