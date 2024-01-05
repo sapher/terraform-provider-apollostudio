@@ -7,12 +7,6 @@ Offers many data sources to query the Apollo Studio API.
 
 Any contributions are welcome!
 
-## Roadmap
-
-- [] Add support for `apollostudio_subgraph` resource
-- [] Add tests
-- [] Add documentation on terraform registry
-
 ## Local development
 
 **Clone repository**
@@ -62,7 +56,9 @@ provider "apollostudio" {
 data "apollostudio_graphs" "this" {}
 ```
 
-> Note that you don't have to run `terraform init` as the provider is already installed.
+> You don't have to run `terraform init` as the provider is run from the local machine.
+
+> Note that many fields are missing from resource and data sources. It's on purpose as depending of the user roles, many fields are not available. Feel free to request the addition of a field if you need it.
 
 ## Links
 

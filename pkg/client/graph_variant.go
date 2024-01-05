@@ -7,7 +7,8 @@ import (
 )
 
 type GraphVariant struct {
-	Identity
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (c *ApolloClient) GetGraphVariants(ctx context.Context, graphId string) ([]GraphVariant, error) {

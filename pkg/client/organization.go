@@ -7,7 +7,8 @@ import (
 )
 
 type Organization struct {
-	Identity
+	Id   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (c *ApolloClient) GetOrganization(ctx context.Context) (Organization, error) {

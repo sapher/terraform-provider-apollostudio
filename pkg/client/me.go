@@ -4,17 +4,18 @@ import (
 	"context"
 )
 
-// Me is a struct that represents the current authenticated user.
-type Me Identity
+type Identity struct {
+	Id   string `json:"id"`
+	Name string `json:"name"`
+}
 
-// GetMe returns the current authenticated user.
-func (c *ApolloClient) GetMe(ctx context.Context) (Me, error) {
+func (c *ApolloClient) GetMe(ctx context.Context) (Identity, error) {
 	var query struct {
-		Me Me
+		Me Identity
 	}
 	err := c.gqlClient.Query(ctx, &query, nil)
 	if err != nil {
-		return Me{}, err
+		return Identity{}, err
 	}
 	return query.Me, nil
 }
