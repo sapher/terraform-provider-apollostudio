@@ -153,11 +153,10 @@ func (c *ApolloClient) SubmitSubgraphCheck(ctx context.Context, graphId string, 
 }
 
 func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workflowId string) ([]WorkflowCheckTaskResult, error) {
-
 	var taskResults []WorkflowCheckTaskResult
-
 	type Query struct {
 		Graph struct {
+			Id            string
 			CheckWorkflow struct {
 				Status string
 				Tasks  []struct {
@@ -193,13 +192,13 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 
 		switch status {
 		case "BLOCKED":
-			tflog.Debug(ctx, fmt.Sprintf("Workflow %s blocked from completing", workflowId))
+			tflog.Warn(ctx, fmt.Sprintf("Workflow %s blocked from completing", workflowId))
 			fallthrough
 		case "FAILED":
-			tflog.Debug(ctx, fmt.Sprintf("Workflow %s failed to complete", workflowId))
+			tflog.Warn(ctx, fmt.Sprintf("Workflow %s failed to complete", workflowId))
 			fallthrough
 		case "PASSED":
-			tflog.Debug(ctx, fmt.Sprintf("Workflow %s completed", workflowId))
+			tflog.Warn(ctx, fmt.Sprintf("Workflow %s completed", workflowId))
 			for _, task := range query.Graph.CheckWorkflow.Tasks {
 
 				// Handle only the tasks with FAILED status
@@ -219,17 +218,17 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 						taskResult.Messages = append(taskResult.Messages, error.Message)
 					}
 				default:
-					tflog.Debug(ctx, fmt.Sprintf("Extracting error messages from task type: %s is not yet supported", task.Typename))
+					tflog.Warn(ctx, fmt.Sprintf("Extracting error messages from task type: %s is not yet supported", task.Typename))
 				}
 
 				taskResults = append(taskResults, taskResult)
 			}
 			return taskResults, nil
 		case "PENDING":
-			tflog.Debug(ctx, fmt.Sprintf("Waiting for workflow %s to complete...", workflowId))
+			tflog.Warn(ctx, fmt.Sprintf("Waiting for workflow %s to complete...", workflowId))
 		default:
 		}
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(2 * time.Second)
 	}
 }

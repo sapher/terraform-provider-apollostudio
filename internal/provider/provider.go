@@ -13,7 +13,9 @@ import (
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
-var _ provider.Provider = &ApolloProvider{}
+var (
+	_ provider.Provider = &ApolloProvider{}
+)
 
 type ApolloProvider struct {
 	version string
