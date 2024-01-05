@@ -197,6 +197,40 @@ func (r *SubGraphResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	// Validate Schema
+	workflowId, err := r.client.SubmitSubgraphCheck(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString(), plan.Schema.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to validate subgraph schema",
+			fmt.Sprintf("Failed to validate subgraph schema: %s", err.Error()),
+		)
+		return
+	}
+
+	tflog.Warn(ctx, fmt.Sprintf("Workflow ID: %s", workflowId))
+
+	validationResults, err := r.client.CheckWorkflow(ctx, state.GraphId.ValueString(), workflowId)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Failed to validate subgraph schema",
+			fmt.Sprintf("Failed to validate subgraph schema: %s", err.Error()),
+		)
+		return
+	}
+
+	// Check if validation results contains errors
+	if len(validationResults) > 0 {
+		for _, result := range validationResults {
+			for _, message := range result.Messages {
+				resp.Diagnostics.AddError(
+					"Failed to validate subgraph schema",
+					fmt.Sprintf("Failed to validate subgraph schema: %s", message),
+				)
+			}
+		}
+		return
+	}
+
 	// Update schema
 	if plan.Schema.ValueString() != state.Schema.ValueString() {
 		err := r.client.PublishSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString(), plan.Schema.ValueString(), state.Url.ValueString(), state.Revision.ValueString())
