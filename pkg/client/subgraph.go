@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -29,9 +30,22 @@ type PublishSubGraph struct {
 	CreatedAt      string
 }
 
+var (
+	LogLevelInfo  LogLevel = "INFO"
+	LogLevelWarn  LogLevel = "WARN"
+	LogLevelError LogLevel = "ERROR"
+)
+
+type LogLevel string
+
+type WorkflowCheckTaskResultDetail struct {
+	Message string
+	Level   LogLevel
+}
+
 type WorkflowCheckTaskResult struct {
-	TaskName string
-	Messages []string
+	TaskName TaskTypename
+	Details  []WorkflowCheckTaskResultDetail
 }
 
 func (c *ApolloClient) PublishSubGraph(ctx context.Context, graphId string, variantName string, name string, schema string, url string, revision string) error {
@@ -158,13 +172,16 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 		Graph struct {
 			Id            string
 			CheckWorkflow struct {
-				Status string
+				Status CheckWorkflowStatus `graphql:"status"`
 				Tasks  []struct {
-					Typename             string `graphql:"__typename"`
-					Status               string
-					OperationsCheckTask  OperationsCheckTask  `graphql:"... on OperationsCheckTask"`
-					CompositionCheckTask CompositionCheckTask `graphql:"... on CompositionCheckTask"`
-					LintCheckTask        LintCheckTask        `graphql:"... on LintCheckTask"`
+					Typename             TaskTypename            `graphql:"__typename"`
+					Status               CheckWorkflowTaskStatus `graphql:"status"`
+					OperationsCheckTask  OperationsCheckTask     `graphql:"... on OperationsCheckTask"`
+					CompositionCheckTask CompositionCheckTask    `graphql:"... on CompositionCheckTask"`
+					LintCheckTask        LintCheckTask           `graphql:"... on LintCheckTask"`
+					DownstreamCheckTask  DownstreamCheckTask     `graphql:"... on DownstreamCheckTask"`
+					FilterCheckTask      FilterCheckTask         `graphql:"... on FilterCheckTask"`
+					ProposalsCheckTask   ProposalsCheckTask      `graphql:"... on ProposalsCheckTask"`
 				} `json:"tasks"`
 			} `graphql:"checkWorkflow(id: $workflowId)"`
 		} `graphql:"graph(id: $graphId)"`
@@ -173,6 +190,8 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 		"graphId":    graphql.ID(graphId),
 		"workflowId": graphql.ID(workflowId),
 	}
+
+	var round = 0
 
 	for {
 		select {
@@ -188,47 +207,93 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 			return taskResults, err
 		}
 
-		status := query.Graph.CheckWorkflow.Status
+		workflowStatus := query.Graph.CheckWorkflow.Status
 
-		switch status {
-		case "BLOCKED":
-			tflog.Warn(ctx, fmt.Sprintf("Workflow %s blocked from completing", workflowId))
+		tflog.Info(ctx, fmt.Sprintf("Workflow %s round %d status: %s", workflowId, round, workflowStatus))
+
+		switch workflowStatus {
+		case CheckWorkflowStatusFailed:
+			tflog.Info(ctx, fmt.Sprintf("Workflow %s failed to complete", workflowId))
 			fallthrough
-		case "FAILED":
-			tflog.Warn(ctx, fmt.Sprintf("Workflow %s failed to complete", workflowId))
-			fallthrough
-		case "PASSED":
-			tflog.Warn(ctx, fmt.Sprintf("Workflow %s completed", workflowId))
+		case CheckWorkflowStatusPassed:
+			tflog.Info(ctx, fmt.Sprintf("Workflow %s completed", workflowId))
+
+			taskResults = make([]WorkflowCheckTaskResult, 0)
+
 			for _, task := range query.Graph.CheckWorkflow.Tasks {
-
-				// Handle only the tasks with FAILED status
-				if task.Status != "FAILED" {
-					continue
-				}
-
 				taskResult := WorkflowCheckTaskResult{
 					TaskName: task.Typename,
-					Messages: []string{},
+					Details:  make([]WorkflowCheckTaskResultDetail, 0),
 				}
-
-				// TODO: Extract meaningful error messages from other type of task
 				switch task.Typename {
-				case "CompositionCheckTask":
+				case TaskTypeCompositionCheck:
 					for _, error := range task.CompositionCheckTask.Result.Errors {
-						taskResult.Messages = append(taskResult.Messages, error.Message)
+						taskResult.Details = append(taskResult.Details, WorkflowCheckTaskResultDetail{
+							Message: error.Message,
+							Level:   LogLevelError,
+						})
 					}
+
+				case TaskTypeOperationsCheck:
+					for _, change := range task.OperationsCheckTask.Result.Changes {
+						logLevel := LogLevelInfo
+						if change.Severity == SeverityFailure {
+							logLevel = LogLevelError
+						}
+
+						switch change.Severity {
+						case SeverityFailure, SeverityNotice:
+							taskResult.Details = append(taskResult.Details, WorkflowCheckTaskResultDetail{
+								Message: fmt.Sprintf("%s (severity: %s, code: %s, category: %s)", change.Description, change.Severity, change.Code, change.Category),
+								Level:   logLevel,
+							})
+						default:
+							tflog.Warn(ctx, fmt.Sprintf("Change severity: %s is not yet supported", change.Severity))
+						}
+					}
+
+				case TaskTypeLintCheck:
+					for _, diagnostic := range task.LintCheckTask.Result.Diagnostics {
+						switch diagnostic.Level {
+						case DiagnosticLevelError, DiagnosticLevelWarning:
+							logLevel := LogLevelInfo
+							if diagnostic.Level == DiagnosticLevelError {
+								logLevel = LogLevelError
+							}
+							var srcLocations []string = make([]string, 0)
+							for _, sourceLocation := range diagnostic.SourceLocations {
+								srcLocations = append(srcLocations, fmt.Sprintf("line %d-%d col %d-%d", sourceLocation.Start.Line, sourceLocation.End.Line, sourceLocation.Start.Column, sourceLocation.End.Column))
+							}
+							taskResult.Details = append(taskResult.Details, WorkflowCheckTaskResultDetail{
+								Message: fmt.Sprintf("%s - %s (level: %s, rule: %s) %s", diagnostic.Coordinate, diagnostic.Message, diagnostic.Level, diagnostic.Rule, strings.Join(srcLocations, ", ")),
+								Level:   logLevel,
+							})
+						default:
+							tflog.Warn(ctx, fmt.Sprintf("Diagnostic level: %s is not yet supported", diagnostic.Level))
+						}
+					}
+
+				case TaskTypeProposalsCheck, TaskTypeDownstreamCheck, TaskTypeFilterCheck:
+					if task.ProposalsCheckTask.Status == CheckWorkflowTaskStatusFailed {
+						taskResult.Details = append(taskResult.Details, WorkflowCheckTaskResultDetail{
+							Message: "Task failed for unknown reason, please check on apollo studio dashboard for more details",
+							Level:   LogLevelError,
+						})
+					}
+
 				default:
-					tflog.Warn(ctx, fmt.Sprintf("Extracting error messages from task type: %s is not yet supported", task.Typename))
 				}
 
 				taskResults = append(taskResults, taskResult)
 			}
+
 			return taskResults, nil
-		case "PENDING":
-			tflog.Warn(ctx, fmt.Sprintf("Waiting for workflow %s to complete...", workflowId))
+		case CheckWorkflowStatusPending:
+			tflog.Info(ctx, fmt.Sprintf("Waiting for workflow %s to complete...", workflowId))
 		default:
 		}
 
+		round++
 		time.Sleep(2 * time.Second)
 	}
 }

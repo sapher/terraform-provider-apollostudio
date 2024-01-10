@@ -60,6 +60,8 @@ data "apollostudio_graphs" "this" {}
 
 > Note that many fields are missing from resource and data sources. It's on purpose as depending of the user roles, many fields are not available. Feel free to request the addition of a field if you need it.
 
+> `graph` is used to reference a `supergraph`.
+
 ## Links
 
 - [Terraform Registry](https://registry.terraform.io/providers/sapher/apollostudio/latest)

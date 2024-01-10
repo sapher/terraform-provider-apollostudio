@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -201,33 +202,51 @@ func (r *SubGraphResource) Update(ctx context.Context, req resource.UpdateReques
 	workflowId, err := r.client.SubmitSubgraphCheck(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString(), plan.Schema.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to validate subgraph schema",
-			fmt.Sprintf("Failed to validate subgraph schema: %s", err.Error()),
+			"Failed to submit a graph validation check",
+			fmt.Sprintf("Failed to submit a graph validation check: %s", err.Error()),
 		)
 		return
 	}
-
-	tflog.Warn(ctx, fmt.Sprintf("Workflow ID: %s", workflowId))
 
 	validationResults, err := r.client.CheckWorkflow(ctx, state.GraphId.ValueString(), workflowId)
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to validate subgraph schema",
-			fmt.Sprintf("Failed to validate subgraph schema: %s", err.Error()),
+			"Failed to check the workflow of a graph validation check",
+			fmt.Sprintf("Failed to check the workflow of a graph validation check: %s", err.Error()),
 		)
 		return
 	}
 
-	// Check if validation results contains errors
-	if len(validationResults) > 0 {
-		for _, result := range validationResults {
-			for _, message := range result.Messages {
-				resp.Diagnostics.AddError(
-					"Failed to validate subgraph schema",
-					fmt.Sprintf("Failed to validate subgraph schema: %s", message),
-				)
+	// Prepare errors and warnings to be shown in output
+	var validationErrorStrBuilder strings.Builder
+	var validationWarningStrBuilder strings.Builder
+
+	for _, result := range validationResults {
+		for _, detail := range result.Details {
+			message := fmt.Sprintf("%s : %s\n", result.TaskName, detail.Message)
+			if detail.Level == client.LogLevelError {
+				validationErrorStrBuilder.WriteString(message)
+			} else {
+				validationWarningStrBuilder.WriteString(message)
 			}
 		}
+	}
+
+	validationErrorStr := strings.TrimSpace(validationErrorStrBuilder.String())
+	validationWarningStr := strings.TrimSpace(validationWarningStrBuilder.String())
+
+	if validationWarningStr != "" {
+		resp.Diagnostics.AddWarning(
+			"Warnings while validating subgraph schema",
+			fmt.Sprintf("Warnings while validating subgraph schema:\n\n%s", validationWarningStr),
+		)
+	}
+
+	if validationErrorStr != "" {
+		resp.Diagnostics.AddError(
+			"Failed to validate subgraph schema",
+			fmt.Sprintf("Failed to validate subgraph schema:\n\n%s", validationErrorStr),
+		)
 		return
 	}
 
