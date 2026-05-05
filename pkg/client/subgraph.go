@@ -260,7 +260,7 @@ func (c *ApolloClient) CheckWorkflow(ctx context.Context, graphId string, workfl
 							if diagnostic.Level == DiagnosticLevelError {
 								logLevel = LogLevelError
 							}
-							var srcLocations []string = make([]string, 0)
+							srcLocations := make([]string, 0)
 							for _, sourceLocation := range diagnostic.SourceLocations {
 								srcLocations = append(srcLocations, fmt.Sprintf("line %d-%d col %d-%d", sourceLocation.Start.Line, sourceLocation.End.Line, sourceLocation.Start.Column, sourceLocation.End.Column))
 							}
