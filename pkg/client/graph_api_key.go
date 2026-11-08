@@ -40,7 +40,7 @@ func (c *ApolloClient) GetGraphApiKey(ctx context.Context, graphId string, apiKe
 			return ak, nil
 		}
 	}
-	return GraphApiKey{}, nil
+	return GraphApiKey{}, ErrNotFound
 }
 
 func (c *ApolloClient) CreateGraphApiKey(ctx context.Context, graphId string, keyName string) (GraphApiKey, error) {

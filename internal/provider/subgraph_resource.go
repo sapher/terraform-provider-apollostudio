@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -16,6 +19,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
+
+// subgraphCheckTimeout bounds how long we wait for an Apollo schema check to complete.
+const subgraphCheckTimeout = 10 * time.Minute
+
+// subgraphImportIdRegexp matches import IDs of the form <graph-id>@<variant-name>:<subgraph-name>.
+var subgraphImportIdRegexp = regexp.MustCompile(`^([a-zA-Z0-9_-]+)@([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)$`)
 
 var (
 	_ resource.Resource                = &SubGraphResource{}
@@ -83,9 +92,6 @@ func (r *SubGraphResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"url": schema.StringAttribute{
 				Description: "URL of the subgraph variant",
 				Required:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
-				},
 			},
 			"revision": schema.StringAttribute{
 				Description: "Revision of the subgraph variant",
@@ -105,7 +111,7 @@ func (r *SubGraphResource) Configure(ctx context.Context, req resource.Configure
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
+			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *client.ApolloClient got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
@@ -115,226 +121,198 @@ func (r *SubGraphResource) Configure(ctx context.Context, req resource.Configure
 }
 
 func (r *SubGraphResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// Return values from plan
 	var plan SubGraphResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Publish the subgraph
-	err := r.client.PublishSubGraph(
-		ctx,
-		plan.GraphId.ValueString(),
-		plan.VariantName.ValueString(),
-		plan.Name.ValueString(),
-		plan.Schema.ValueString(),
-		plan.Url.ValueString(),
-		"1", // plan.Revision.ValueString(),
-	)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to create subgraph",
-			fmt.Sprintf("Failed to create subgraph: %s", err.Error()),
-		)
+	graphId := plan.GraphId.ValueString()
+	variantName := plan.VariantName.ValueString()
+
+	// Checks can only run against an existing variant; the first publish creates the variant.
+	_, err := r.client.GetGraphVariant(ctx, graphId+"@"+variantName)
+	switch {
+	case client.IsNotFound(err):
+		tflog.Info(ctx, fmt.Sprintf("Variant %s@%s does not exist yet, skipping schema check", graphId, variantName))
+	case err != nil:
+		resp.Diagnostics.AddError("Failed to get graph variant", fmt.Sprintf("Failed to get graph variant %s@%s: %s", graphId, variantName, err.Error()))
 		return
-	}
-
-	// Set the revision to 1
-	plan.Revision = types.StringValue("1")
-	diags = resp.State.Set(ctx, plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r *SubGraphResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
-	// Return values from state
-	var state SubGraphResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get the subgraph
-	subgraph, err := r.client.GetSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to get subgraph",
-			fmt.Sprintf("Failed to get subgraph: %s", err.Error()),
-		)
-		return
-	}
-
-	// Map response body to schema and populate response
-	state.Url = types.StringValue(subgraph.Url)
-	state.Revision = types.StringValue(subgraph.Revision)
-	state.Schema = types.StringValue(subgraph.ActivePartialSchema.Sdl)
-
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-func (r *SubGraphResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
-	// Return values from plan
-	var plan SubGraphResourceModel
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Return values from state
-	var state SubGraphResourceModel
-	diags = req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Validate Schema
-	workflowId, err := r.client.SubmitSubgraphCheck(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString(), plan.Schema.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to submit a graph validation check",
-			fmt.Sprintf("Failed to submit a graph validation check: %s", err.Error()),
-		)
-		return
-	}
-
-	validationResults, err := r.client.CheckWorkflow(ctx, state.GraphId.ValueString(), workflowId)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to check the workflow of a graph validation check",
-			fmt.Sprintf("Failed to check the workflow of a graph validation check: %s", err.Error()),
-		)
-		return
-	}
-
-	// Prepare errors and warnings to be shown in output
-	var validationErrorStrBuilder strings.Builder
-	var validationWarningStrBuilder strings.Builder
-
-	for _, result := range validationResults {
-		for _, detail := range result.Details {
-			message := fmt.Sprintf("%s : %s\n", result.TaskName, detail.Message)
-			if detail.Level == client.LogLevelError {
-				validationErrorStrBuilder.WriteString(message)
-			} else {
-				validationWarningStrBuilder.WriteString(message)
-			}
-		}
-	}
-
-	validationErrorStr := strings.TrimSpace(validationErrorStrBuilder.String())
-	validationWarningStr := strings.TrimSpace(validationWarningStrBuilder.String())
-
-	if validationWarningStr != "" {
-		resp.Diagnostics.AddWarning(
-			"Warnings while validating subgraph schema",
-			fmt.Sprintf("Warnings while validating subgraph schema:\n\n%s", validationWarningStr),
-		)
-	}
-
-	if validationErrorStr != "" {
-		resp.Diagnostics.AddError(
-			"Failed to validate subgraph schema",
-			fmt.Sprintf("Failed to validate subgraph schema:\n\n%s", validationErrorStr),
-		)
-		return
-	}
-
-	// Update schema
-	if plan.Schema.ValueString() != state.Schema.ValueString() {
-		err := r.client.PublishSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString(), plan.Schema.ValueString(), state.Url.ValueString(), state.Revision.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Failed to update subgraph schema",
-				fmt.Sprintf("Failed to update subgraph schema: %s", err.Error()),
-			)
+	default:
+		r.checkSchema(ctx, plan, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
-	// Get the subgraph
-	subgraph, err := r.client.GetSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString())
+	// Publish the subgraph
+	compositionErrors, err := r.client.PublishSubGraph(ctx, graphId, variantName, plan.Name.ValueString(), plan.Schema.ValueString(), plan.Url.ValueString(), "1")
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to get subgraph",
-			fmt.Sprintf("Failed to get subgraph: %s", err.Error()),
-		)
+		resp.Diagnostics.AddError("Failed to create subgraph", fmt.Sprintf("Failed to create subgraph: %s", err.Error()))
 		return
 	}
 
-	// Map response body to schema and populate response
-	plan.Revision = types.StringValue(subgraph.Revision)
-
+	// The subgraph exists from here on: always record it in state, even if composition failed.
+	plan.Revision = types.StringValue("1")
+	r.refreshRevision(ctx, &plan, &resp.Diagnostics)
 	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	addCompositionErrors(compositionErrors, &resp.Diagnostics)
 }
 
-func (r *SubGraphResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// Return values from state
+func (r *SubGraphResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	var state SubGraphResourceModel
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Delete the graph
+	subgraph, err := r.client.GetSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString())
+	if client.IsNotFound(err) {
+		tflog.Warn(ctx, fmt.Sprintf("Subgraph %s@%s:%s not found, removing it from state", state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
+	if err != nil {
+		resp.Diagnostics.AddError("Failed to get subgraph", fmt.Sprintf("Failed to get subgraph: %s", err.Error()))
+		return
+	}
+
+	state.Url = types.StringValue(subgraph.Url)
+	state.Revision = types.StringValue(subgraph.Revision)
+	state.Schema = types.StringValue(subgraph.ActivePartialSchema.Sdl)
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+func (r *SubGraphResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
+	var plan SubGraphResourceModel
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var state SubGraphResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	schemaChanged := !plan.Schema.Equal(state.Schema)
+	urlChanged := !plan.Url.Equal(state.Url)
+
+	if schemaChanged {
+		r.checkSchema(ctx, plan, &resp.Diagnostics)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
+	plan.Revision = state.Revision
+	var compositionErrors []string
+	if schemaChanged || urlChanged {
+		var err error
+		compositionErrors, err = r.client.PublishSubGraph(ctx, plan.GraphId.ValueString(), plan.VariantName.ValueString(), plan.Name.ValueString(), plan.Schema.ValueString(), plan.Url.ValueString(), state.Revision.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("Failed to update subgraph", fmt.Sprintf("Failed to update subgraph: %s", err.Error()))
+			return
+		}
+	}
+
+	r.refreshRevision(ctx, &plan, &resp.Diagnostics)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	addCompositionErrors(compositionErrors, &resp.Diagnostics)
+}
+
+func (r *SubGraphResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+	var state SubGraphResourceModel
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	err := r.client.RemoveSubGraph(ctx, state.GraphId.ValueString(), state.VariantName.ValueString(), state.Name.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to delete subgraph",
-			fmt.Sprintf("Failed to delete subgraph: %s", err.Error()),
-		)
+		resp.Diagnostics.AddError("Failed to delete subgraph", fmt.Sprintf("Failed to delete subgraph: %s", err.Error()))
 		return
 	}
 }
 
+// ImportState accepts IDs of the form <graph-id>@<variant-name>:<subgraph-name>; Read fills in the rest.
 func (r *SubGraphResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	tflog.Info(ctx, fmt.Sprintf("Import subgraph: %s", req.ID))
-	pattern := "^([a-zA-Z0-9_-]+)@([a-zA-Z0-9_-]+):([a-zA-Z0-9_-]+)$"
-	matched, _ := regexp.MatchString(pattern, req.ID)
-	if !matched {
+	matches := subgraphImportIdRegexp.FindStringSubmatch(req.ID)
+	if matches == nil {
 		resp.Diagnostics.AddError(
 			"Invalid subgraph ID",
-			fmt.Sprintf("Invalid subgraph ID: %s", req.ID),
+			fmt.Sprintf("Invalid subgraph ID %q, expected <graph-id>@<variant-name>:<subgraph-name>", req.ID),
 		)
 		return
 	}
 
-	// extract each part of the string
-	re := regexp.MustCompile(pattern)
-	matchs := re.FindStringSubmatch(req.ID)
-	graphId := matchs[1]
-	variantName := matchs[2]
-	name := matchs[3]
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("graph_id"), matches[1])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("variant_name"), matches[2])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("name"), matches[3])...)
+}
 
-	// Get the subgraph
-	subgraph, err := r.client.GetSubGraph(ctx, graphId, variantName, name)
+// checkSchema runs an Apollo subgraph check for the planned schema and reports its outcome as diagnostics.
+func (r *SubGraphResource) checkSchema(ctx context.Context, plan SubGraphResourceModel, diags *diag.Diagnostics) {
+	graphId := plan.GraphId.ValueString()
+
+	workflowId, err := r.client.SubmitSubgraphCheck(ctx, graphId, plan.VariantName.ValueString(), plan.Name.ValueString(), plan.Schema.ValueString())
 	if err != nil {
-		resp.Diagnostics.AddError(
-			"Failed to get subgraph",
-			fmt.Sprintf("Failed to get subgraph: %s", err.Error()),
-		)
+		diags.AddError("Failed to submit a graph validation check", fmt.Sprintf("Failed to submit a graph validation check: %s", err.Error()))
 		return
 	}
 
-	// Return values from plan
-	var plan SubGraphResourceModel
-	plan.GraphId = types.StringValue(graphId)
-	plan.VariantName = types.StringValue(variantName)
-	plan.Name = types.StringValue(name)
-	plan.Schema = types.StringValue(subgraph.ActivePartialSchema.Sdl)
-	plan.Url = types.StringValue(subgraph.Url)
-	plan.Revision = types.StringValue(subgraph.Revision)
+	checkCtx, cancel := context.WithTimeout(ctx, subgraphCheckTimeout)
+	defer cancel()
 
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	result, err := r.client.CheckWorkflow(checkCtx, graphId, workflowId)
+	if err != nil {
+		diags.AddError("Failed to check the workflow of a graph validation check", fmt.Sprintf("Failed to check the workflow of a graph validation check: %s", err.Error()))
+		return
+	}
+
+	var errorsBuilder, warningsBuilder strings.Builder
+	for _, task := range result.Tasks {
+		for _, detail := range task.Details {
+			message := fmt.Sprintf("%s : %s\n", task.TaskName, detail.Message)
+			if detail.Level == client.LogLevelError {
+				errorsBuilder.WriteString(message)
+			} else {
+				warningsBuilder.WriteString(message)
+			}
+		}
+	}
+
+	if warnings := strings.TrimSpace(warningsBuilder.String()); warnings != "" {
+		diags.AddWarning("Warnings while validating subgraph schema", fmt.Sprintf("Warnings while validating subgraph schema:\n\n%s", warnings))
+	}
+
+	errs := strings.TrimSpace(errorsBuilder.String())
+	if errs == "" && result.Failed() {
+		errs = fmt.Sprintf("check workflow %s ended with status %s", workflowId, result.Status)
+	}
+	if errs != "" {
+		diags.AddError("Failed to validate subgraph schema", fmt.Sprintf("Failed to validate subgraph schema:\n\n%s", errs))
+	}
+}
+
+// refreshRevision reads the subgraph back to record the revision Apollo stored.
+func (r *SubGraphResource) refreshRevision(ctx context.Context, model *SubGraphResourceModel, diags *diag.Diagnostics) {
+	subgraph, err := r.client.GetSubGraph(ctx, model.GraphId.ValueString(), model.VariantName.ValueString(), model.Name.ValueString())
+	if err != nil {
+		diags.AddWarning("Failed to read subgraph revision", fmt.Sprintf("Subgraph was published but its revision could not be read back: %s", err.Error()))
+		return
+	}
+	model.Revision = types.StringValue(subgraph.Revision)
+}
+
+func addCompositionErrors(compositionErrors []string, diags *diag.Diagnostics) {
+	if len(compositionErrors) == 0 {
+		return
+	}
+	diags.AddError(
+		"Subgraph published but supergraph composition failed",
+		fmt.Sprintf("The subgraph was stored by Apollo but the supergraph was not updated:\n\n%s", strings.Join(compositionErrors, "\n")),
+	)
 }

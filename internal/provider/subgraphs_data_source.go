@@ -138,6 +138,7 @@ func (d *SubGraphsDataSource) Read(ctx context.Context, req datasource.ReadReque
 		return
 	}
 
+	data.SubGraphs = make([]SubGraphDataSourceModel, 0, len(subgraphs))
 	for _, subgraph := range subgraphs {
 		data.SubGraphs = append(data.SubGraphs, SubGraphDataSourceModel{
 			Name:     types.StringValue(subgraph.Name),

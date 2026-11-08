@@ -8,9 +8,11 @@ import (
 )
 
 func TestAccMeDataSource(t *testing.T) {
-	// Retrieve the current user from the client
-	cl := testClient()
-	me, _ := cl.GetMe(context.Background())
+	testAccSkipUnlessAcc(t)
+	me, err := testClient().GetMe(context.Background())
+	if err != nil {
+		t.Fatalf("failed to get current identity: %v", err)
+	}
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

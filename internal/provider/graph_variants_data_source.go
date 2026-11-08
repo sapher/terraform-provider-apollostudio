@@ -85,7 +85,7 @@ func (d *GraphVariantsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
-	tflog.Warn(ctx, "Reading graph variants for graph: "+data.GraphId.ValueString())
+	tflog.Debug(ctx, "Reading graph variants for graph: "+data.GraphId.ValueString())
 
 	graphVariants, err := d.client.GetGraphVariants(ctx, data.GraphId.ValueString())
 	if err != nil {
@@ -96,6 +96,7 @@ func (d *GraphVariantsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
+	data.GraphVariants = make([]GraphVariantDataSourceModel, 0, len(graphVariants))
 	for _, graphVariant := range graphVariants {
 		data.GraphVariants = append(data.GraphVariants, GraphVariantDataSourceModel{
 			Id:   types.StringValue(graphVariant.Id),

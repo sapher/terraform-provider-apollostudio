@@ -39,7 +39,7 @@ func (d *GraphsDataSource) Schema(_ context.Context, req datasource.SchemaReques
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "ID of the graph",
-							Required:    true,
+							Computed:    true,
 						},
 						"name": schema.StringAttribute{
 							Description: "Name of the graph",
@@ -100,6 +100,7 @@ func (d *GraphsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
+	data.Graphs = make([]GraphDataSourceModel, 0, len(graphs))
 	for _, graph := range graphs {
 		data.Graphs = append(data.Graphs, GraphDataSourceModel{
 			Id:               types.StringValue(graph.Id),

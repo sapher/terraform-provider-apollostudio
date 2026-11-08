@@ -40,7 +40,6 @@ func (d *GraphVariantDataSource) Schema(_ context.Context, req datasource.Schema
 				Description: "ID of the variant",
 				Required:    true,
 				Validators: []validator.String{
-					stringvalidator.LengthBetween(1, 40),
 					stringvalidator.RegexMatches(
 						regexp.MustCompile(`^([a-zA-Z0-9_-]+)@([a-zA-Z0-9_-]+)$`),
 						"must be in the format of <graph-id>@<variant-name>",
@@ -83,20 +82,18 @@ func (d *GraphVariantDataSource) Read(ctx context.Context, req datasource.ReadRe
 	}
 
 	graphVariant, err := d.client.GetGraphVariant(ctx, data.Id.ValueString())
+	if client.IsNotFound(err) {
+		resp.Diagnostics.AddError(
+			"Failed to get graph variant",
+			fmt.Sprintf("Failed to get graph variant: %s because the variant wasn't found.", data.Id.ValueString()),
+		)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get graph variant",
 			fmt.Sprintf("Failed to get graph variant: %s", err.Error()),
 		)
-		return
-	}
-
-	if graphVariant.Id == "" {
-		resp.Diagnostics.AddError(
-			"Failed to get graph variant",
-			fmt.Sprintf("Failed to get graph variant: %s because the variant wasn't found.", data.Id.ValueString()),
-		)
-		// resp.State.RemoveResource(ctx)
 		return
 	}
 

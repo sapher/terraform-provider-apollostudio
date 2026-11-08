@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
@@ -83,7 +84,7 @@ func (r *GraphResource) Configure(ctx context.Context, req resource.ConfigureReq
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
+			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *client.ApolloClient got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
@@ -134,6 +135,11 @@ func (r *GraphResource) Read(ctx context.Context, req resource.ReadRequest, resp
 
 	// Get the graph
 	graph, err := r.client.GetGraph(ctx, state.Id.ValueString())
+	if client.IsNotFound(err) {
+		tflog.Warn(ctx, fmt.Sprintf("Graph %s not found, removing it from state", state.Id.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get graph",

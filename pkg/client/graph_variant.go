@@ -40,5 +40,8 @@ func (c *ApolloClient) GetGraphVariant(ctx context.Context, variantRef string) (
 	if err != nil {
 		return GraphVariant{}, err
 	}
+	if query.Variant.GraphVariant.Id == "" {
+		return GraphVariant{}, ErrNotFound
+	}
 	return query.Variant.GraphVariant, nil
 }
