@@ -62,10 +62,10 @@ func (fs *fakeServer) requestCount() int {
 	return len(fs.requests)
 }
 
-func (fs *fakeServer) request(i int) recordedRequest {
+func (fs *fakeServer) firstRequest() recordedRequest {
 	fs.mu.Lock()
 	defer fs.mu.Unlock()
-	return fs.requests[i]
+	return fs.requests[0]
 }
 
 func TestNewClientSendsApiKey(t *testing.T) {
@@ -77,7 +77,7 @@ func TestNewClientSendsApiKey(t *testing.T) {
 	if me.Id != "u1" || me.Name != "User" {
 		t.Errorf("unexpected identity: %+v", me)
 	}
-	if got := fs.request(0).APIKey; got != "test-key" {
+	if got := fs.firstRequest().APIKey; got != "test-key" {
 		t.Errorf("x-api-key header = %q, want test-key", got)
 	}
 }
@@ -163,7 +163,7 @@ func TestGetSubGraphsSendsIncludeDeleted(t *testing.T) {
 	if len(sgs) != 2 {
 		t.Errorf("expected 2 subgraphs, got %d", len(sgs))
 	}
-	req := fs.request(0)
+	req := fs.firstRequest()
 	if !strings.Contains(req.Query, "subgraphs(includeDeleted: $includeDeleted)") {
 		t.Errorf("query does not pass includeDeleted: %s", req.Query)
 	}
@@ -205,7 +205,11 @@ func TestSubmitSubgraphCheck(t *testing.T) {
 		if err != nil || id != "wf-1" {
 			t.Fatalf("expected wf-1, got %q, %v", id, err)
 		}
-		if ref := fs.request(0).Variables["input"].(map[string]interface{})["graphRef"]; ref != "g@v" {
+		input, ok := fs.firstRequest().Variables["input"].(map[string]interface{})
+		if !ok {
+			t.Fatalf("input variable has unexpected type %T", fs.firstRequest().Variables["input"])
+		}
+		if ref := input["graphRef"]; ref != "g@v" {
 			t.Errorf("graphRef = %v, want g@v", ref)
 		}
 	})

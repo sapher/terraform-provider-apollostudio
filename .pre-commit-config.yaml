@@ -4,6 +4,6 @@ repos:
     hooks:
       - id: gitleaks
   - repo: https://github.com/golangci/golangci-lint
-    rev: v1.55.0
+    rev: v1.64.8
     hooks:
       - id: golangci-lint
