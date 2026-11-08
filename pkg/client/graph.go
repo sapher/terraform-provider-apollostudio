@@ -33,7 +33,7 @@ func (c *ApolloClient) GetGraphs(ctx context.Context) ([]Graph, error) {
 
 func (c *ApolloClient) GetGraph(ctx context.Context, graphId string) (Graph, error) {
 	var query struct {
-		Graph Graph `graphql:"graph(id: $graphId)"`
+		Graph *Graph `graphql:"graph(id: $graphId)"`
 	}
 	vars := map[string]interface{}{
 		"graphId": graphql.ID(graphId),
@@ -42,7 +42,10 @@ func (c *ApolloClient) GetGraph(ctx context.Context, graphId string) (Graph, err
 	if err != nil {
 		return Graph{}, err
 	}
-	return query.Graph, nil
+	if query.Graph == nil || query.Graph.Id == "" {
+		return Graph{}, ErrNotFound
+	}
+	return *query.Graph, nil
 }
 
 func (c *ApolloClient) CreateGraph(ctx context.Context, id string, name string, description string) (Graph, error) {

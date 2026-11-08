@@ -88,6 +88,13 @@ func (d *GraphDataSource) Read(ctx context.Context, req datasource.ReadRequest, 
 	}
 
 	graph, err := d.client.GetGraph(ctx, data.Id.ValueString())
+	if client.IsNotFound(err) {
+		resp.Diagnostics.AddError(
+			"Graph not found",
+			fmt.Sprintf("Graph %q was not found or is not accessible with the configured API key.", data.Id.ValueString()),
+		)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get graph",

@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/sapher/terraform-provider-apollostudio/pkg/client"
 )
 
@@ -100,7 +101,7 @@ func (r *GraphApiKeyResource) Configure(ctx context.Context, req resource.Config
 
 	if !ok {
 		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
+			"Unexpected Resource Configure Type",
 			fmt.Sprintf("Expected *client.ApolloClient got: %T. Please report this issue to the provider developers.", req.ProviderData),
 		)
 		return
@@ -161,21 +162,16 @@ func (r *GraphApiKeyResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// Get refreshed graph api key from Apollo Studio
 	apiKey, err := r.client.GetGraphApiKey(ctx, state.GraphId.ValueString(), state.Id.ValueString())
+	if client.IsNotFound(err) {
+		tflog.Warn(ctx, fmt.Sprintf("Graph API key %s not found, removing it from state", state.Id.ValueString()))
+		resp.State.RemoveResource(ctx)
+		return
+	}
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Failed to get graph api key",
 			fmt.Sprintf("Failed to get graph api key: %s", err.Error()),
 		)
-		return
-	}
-
-	// If not found
-	if apiKey.Id == "" {
-		resp.Diagnostics.AddError(
-			"Failed to get graph api key",
-			fmt.Sprintf("Failed to get graph api key: %s because the API key wasn't found. Might have been deleted", state.Id.ValueString()),
-		)
-		// resp.State.RemoveResource(ctx)
 		return
 	}
 
@@ -215,7 +211,7 @@ func (r *GraphApiKeyResource) Update(ctx context.Context, req resource.UpdateReq
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating graph api key",
-			"Could not update graph api key "+plan.Id.ValueString()+", unexpected error: "+err.Error(),
+			"Could not update graph api key "+state.Id.ValueString()+", unexpected error: "+err.Error(),
 		)
 		return
 	}

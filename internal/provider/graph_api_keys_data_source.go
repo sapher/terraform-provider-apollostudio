@@ -107,8 +107,8 @@ func (d *GraphApiKeysDataSource) Read(ctx context.Context, req datasource.ReadRe
 	graphApiKeys, err := d.client.GetGraphApiKeys(ctx, data.GraphId.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Failed to get graph",
-			fmt.Sprintf("Failed to get graph: %s", err.Error()),
+			"Failed to get graph api keys",
+			fmt.Sprintf("Failed to get graph api keys: %s", err.Error()),
 		)
 		return
 	}

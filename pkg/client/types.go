@@ -106,7 +106,7 @@ type LintResult struct {
 
 type DownstreamCheckResult struct {
 	Blocking              bool   `json:"blocking"`
-	DownstreamVariantName string `json:"downsteamVariantName"`
+	DownstreamVariantName string `json:"downstreamVariantName"`
 	FailsUpstreamWorkflow bool   `json:"failsUpstreamWorkflow"`
 }
 
@@ -144,7 +144,7 @@ type LintDiagnosticLevel string
 
 const (
 	CategoryAddition    ChangeCategory = "ADDITION"
-	CatergoryRemoval    ChangeCategory = "REMOVAL"
+	CategoryRemoval     ChangeCategory = "REMOVAL"
 	CategoryEdit        ChangeCategory = "EDIT"
 	CategoryDeprecation ChangeCategory = "DEPRECATION"
 )

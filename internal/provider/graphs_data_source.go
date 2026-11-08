@@ -39,7 +39,7 @@ func (d *GraphsDataSource) Schema(_ context.Context, req datasource.SchemaReques
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "ID of the graph",
-							Required:    true,
+							Computed:    true,
 						},
 						"name": schema.StringAttribute{
 							Description: "Name of the graph",
