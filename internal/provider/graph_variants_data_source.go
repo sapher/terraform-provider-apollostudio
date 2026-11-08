@@ -96,6 +96,7 @@ func (d *GraphVariantsDataSource) Read(ctx context.Context, req datasource.ReadR
 		return
 	}
 
+	data.GraphVariants = make([]GraphVariantDataSourceModel, 0, len(graphVariants))
 	for _, graphVariant := range graphVariants {
 		data.GraphVariants = append(data.GraphVariants, GraphVariantDataSourceModel{
 			Id:   types.StringValue(graphVariant.Id),

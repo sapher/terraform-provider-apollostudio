@@ -7,19 +7,22 @@ import (
 )
 
 func TestAccGraphDataSource(t *testing.T) {
+	graphId := testAccGraphId()
 	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
 			{
-				Config: providerConfig + `
-					data "apollostudio_graph" "this" {
-						id = "testacc-terraform"
-					}
-				`,
-				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr("data.apollostudio_graph.this", "id", "testacc-terraform"),
-					resource.TestCheckResourceAttr("data.apollostudio_graph.this", "name", "testacc-terraform"),
+				Config: providerConfig + testAccGraphConfig(graphId) + `
+data "apollostudio_graph" "this" {
+  id = apollostudio_graph.fixture.id
+}
+`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("data.apollostudio_graph.this", "id", graphId),
+					resource.TestCheckResourceAttr("data.apollostudio_graph.this", "name", graphId),
 					resource.TestCheckResourceAttr("data.apollostudio_graph.this", "description", "graph dedicated for terraform provider acceptance testing"),
+					resource.TestCheckResourceAttrSet("data.apollostudio_graph.this", "graph_type"),
 				),
 			},
 		},

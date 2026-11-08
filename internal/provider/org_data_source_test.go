@@ -8,9 +8,11 @@ import (
 )
 
 func TestAccOrgDataSource(t *testing.T) {
-	// Retrieve the current organization from the client
-	cl := testClient()
-	org, _ := cl.GetOrganization(context.Background())
+	testAccSkipUnlessAcc(t)
+	org, err := testClient().GetOrganization(context.Background())
+	if err != nil {
+		t.Fatalf("failed to get organization: %v", err)
+	}
 
 	resource.Test(t, resource.TestCase{
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

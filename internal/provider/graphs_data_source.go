@@ -100,6 +100,7 @@ func (d *GraphsDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
+	data.Graphs = make([]GraphDataSourceModel, 0, len(graphs))
 	for _, graph := range graphs {
 		data.Graphs = append(data.Graphs, GraphDataSourceModel{
 			Id:               types.StringValue(graph.Id),

@@ -113,6 +113,7 @@ func (d *GraphApiKeysDataSource) Read(ctx context.Context, req datasource.ReadRe
 		return
 	}
 
+	data.GraphApiKeys = make([]GraphApiKeyDataSourceModel, 0, len(graphApiKeys))
 	for _, graphApiKey := range graphApiKeys {
 		data.GraphApiKeys = append(data.GraphApiKeys, GraphApiKeyDataSourceModel{
 			Id:        types.StringValue(graphApiKey.Id),
